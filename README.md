@@ -9,6 +9,10 @@ This modules interfaces the audio processors of the PRODIGY and MAVEN series wit
 
 ## :rocket: Version History
 
+### 1.0.1 (2025-11-09)
+
+- bugfix: use correct endpoint for routing at PRODIGY.MC
+
 ### 1.0.0 (2025-10-01)
 
 - major: initial Release

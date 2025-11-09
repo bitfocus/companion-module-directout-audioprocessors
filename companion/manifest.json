@@ -21,17 +21,6 @@
 	},
 	"legacyIds": [],
 	"manufacturer": "DirectOut technologies",
-	"products": [
-		"PRODIGY.MC",
-		"PRODIGY.MP",
-		"PRODIGY.MX",
-		"MAVEN.A"
-	],
-	"keywords": [
-		"Audio",
-		"DSP",
-		"Converter",
-		"Conversion",
-		"Redundancy"
-	]
+	"products": ["PRODIGY.MC", "PRODIGY.MP", "PRODIGY.MX", "MAVEN.A"],
+	"keywords": ["Audio", "DSP", "Converter", "Conversion", "Redundancy"]
 }
