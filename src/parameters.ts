@@ -26,7 +26,7 @@ export type Option = {
 	max?: number
 	/** optional step for number, 1 if omitted */
 	step?: number
-	/** make incremental rather than absolute */
+	/** allow incremental mode, true if omitted */
 	incremental?: boolean
 }
 
@@ -468,7 +468,6 @@ export function returnParameters(self: DirectoutInstance): Parameters {
 					max: 18,
 					step: 0.1,
 					default: 0,
-					incremental: true,
 				},
 			],
 			options: [
@@ -495,7 +494,6 @@ export function returnParameters(self: DirectoutInstance): Parameters {
 					max: 24,
 					step: 0.1,
 					default: 0,
-					incremental: true,
 				},
 			],
 			options: [
@@ -522,7 +520,7 @@ export function returnParameters(self: DirectoutInstance): Parameters {
 					max: 24,
 					step: 0.1,
 					default: 0,
-					incremental: true,
+					incremental: false,
 				},
 			],
 			options: [
@@ -706,7 +704,6 @@ export function returnParameters(self: DirectoutInstance): Parameters {
 					max: 18,
 					step: 0.1,
 					default: 0,
-					incremental: true,
 				},
 			],
 		},
@@ -1185,7 +1182,6 @@ export function returnParameters(self: DirectoutInstance): Parameters {
 					max: 75,
 					step: 1,
 					tooltip: `Values range from 5 to 75, incrementing by 1.`,
-					incremental: true,
 				},
 			],
 		},
@@ -1415,7 +1411,6 @@ export function returnParameters(self: DirectoutInstance): Parameters {
 					max: 18,
 					step: 0.1,
 					default: 0,
-					incremental: true,
 				},
 			],
 		},
@@ -1731,7 +1726,6 @@ export function returnParameters(self: DirectoutInstance): Parameters {
 					min: -144,
 					max: 18,
 					step: 0.1,
-					incremental: true,
 				},
 			],
 		},
@@ -1886,7 +1880,6 @@ export function returnParameters(self: DirectoutInstance): Parameters {
 					max: 65535,
 					step: 1,
 					default: 0,
-					incremental: true,
 				},
 			],
 		},
