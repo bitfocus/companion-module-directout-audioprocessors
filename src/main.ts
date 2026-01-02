@@ -262,9 +262,10 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const self = this
 
-		const makeActionOption = (param: Option): SomeCompanionActionInputField => {
+		const makeActionOption = (param: Option): SomeCompanionActionInputField[] => {
+			const baseId = param.id ?? param.label ?? `unknown_${param.type}_option`
 			const option: Record<string, unknown> = {
-				id: param.id ?? param.label ?? `unknown_${param.type}_option`,
+				id: baseId,
 				label: param.label ?? `Unknown`,
 			}
 			if (param.tooltip) option.tooltip = param.tooltip
@@ -286,7 +287,8 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 					option.choices = []
 					option.default = ''
 				}
-			} else if (param.type === 'number') {
+				return [option as unknown as SomeCompanionActionInputField]
+			} else if (param.type === 'number' && param.incremental === false) {
 				option.type = 'number'
 				option.min = param.min ?? 0
 				option.max = param.max ?? 1024
@@ -296,6 +298,42 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 				if (Number(option.default) > Number(option.max)) option.default = option.max
 				if (option.tooltip === undefined)
 					option.tooltip = `Value range between ${option.min} and ${option.max}, increments ${option.step}`
+				return [option as unknown as SomeCompanionActionInputField]
+			} else if (param.type === 'number' && param.incremental !== false) {
+				// generate two inputs: one for absolute mode, one for incremental mode
+				const min = param.min ?? 0
+				const max = param.max ?? 1024
+				const step = param.step ?? 1
+				const absDefault = Number(param.default ?? 0)
+
+				const absoluteOption: Record<string, unknown> = {
+					id: baseId,
+					label: param.label ?? `Unknown`,
+					type: 'number',
+					min: min,
+					max: max,
+					step: step,
+					default: Math.max(min, Math.min(max, absDefault)),
+					tooltip: `Value range between ${min} and ${max}, increments ${step}`,
+					isVisible: (options: CompanionOptionValues) => options['incremental'] !== true,
+				}
+
+				const incrementalOption: Record<string, unknown> = {
+					id: `${baseId}_inc`,
+					label: param.label ?? `Unknown`,
+					type: 'number',
+					min: -max,
+					max: max,
+					step: step,
+					default: step,
+					tooltip: `Adjustment amount. Negative values decrement. Result clamped to ${min}..${max}`,
+					isVisible: (options: CompanionOptionValues) => options['incremental'] === true,
+				}
+
+				return [
+					absoluteOption as unknown as SomeCompanionActionInputField,
+					incrementalOption as unknown as SomeCompanionActionInputField,
+				]
 			} else if (param.type === 'boolean') {
 				option.type = 'dropdown'
 				option.choices = param.choices ?? [
@@ -303,14 +341,16 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 					{ label: 'Off', id: '%%false%%' },
 				] // toggle will be added by enrich function
 				option.default = param.default ?? '%%true%%'
+				return [option as unknown as SomeCompanionActionInputField]
 			} else if (param.type === 'string') {
 				option.type = 'textinput'
 				option.useVariables = { local: true }
 				option.default = param.default ?? ''
 				if (param.regex) option.regex = param.regex
+				return [option as unknown as SomeCompanionActionInputField]
 			}
 
-			return option as unknown as SomeCompanionActionInputField
+			return [option as unknown as SomeCompanionActionInputField]
 		}
 
 		const makeFeedbackOption = (param: Option) => {
@@ -359,6 +399,20 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 			}
 
 			return option as unknown as SomeCompanionFeedbackInputField
+		}
+
+		const makeIncrementalOption = (param: Option): SomeCompanionActionInputField[] => {
+			if (param.type === 'number' && param.incremental !== false) {
+				const option: Record<string, unknown> = {
+					id: 'incremental',
+					label: 'Incremental',
+					type: 'checkbox',
+					default: false,
+					tooltip: 'When enabled, adds value to current setting. When disabled, sets absolute value.',
+				}
+				return [option as unknown as SomeCompanionActionInputField]
+			}
+			return []
 		}
 
 		for (const parameterKey of Object.keys(parameters)) {
@@ -444,16 +498,30 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 
 							self.sendSetCmd(thisPath, value, param.translation)
 						} else if (param.type == 'number') {
-							let value = Number(options[thisKey])
-							if (param.min && value < param.min) value = param.min
-							if (param.max && value > param.max) value = param.max
+							// check if user selected incremental mode
+							const useIncremental = param.incremental !== false && options['incremental'] === true
+
+							// read from correct field based on mode
+							const valueKey = useIncremental ? `${thisKey}_inc` : thisKey
+							let value = Number(options[valueKey])
+
 							if (param.step)
 								value = Number(
 									(Math.round((value + Number.EPSILON) / param.step) * param.step).toFixed(
 										param.step.toString().includes('.') ? param.step.toString().split('.')[1].length : 0,
 									),
 								)
-							self.sendSetCmd(thisPath, value)
+
+							if (useIncremental) {
+								// incremental mode: add to current value and clamp result
+								let newVal = Number(self.getPath(thisPath)) + value
+								if (param.max !== undefined && newVal > param.max) newVal = param.max
+								if (param.min !== undefined && newVal < param.min) newVal = param.min
+								self.sendSetCmd(thisPath, newVal)
+							} else {
+								// absolute mode: value already clamped by input bounds
+								self.sendSetCmd(thisPath, value)
+							}
 						} else {
 							self.sendSetCmd(thisPath, options[thisKey], param.translation)
 						}
@@ -472,7 +540,8 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 						if (value === true) value = '%%true%%'
 						else if (value === false) value = '%%false%%'
 						newValues[param.key] = value
-						// self.log('debug', `learn called. value: ${value}\noptionValues: ${JSON.stringify(param, null, 2)}`)
+						// switch to absolute mode so learned value is visible
+						if (param.type === 'number') newValues['incremental'] = false
 					}
 					return { ...options, ...newValues }
 				}
@@ -480,8 +549,11 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 				this.actionDefinitions[key] = {
 					name: `Set ${parameter.name}`,
 					options: [
-						...(optionOptions ? optionOptions.map((opt) => makeActionOption(opt)) : []),
-						...(parameterOptions ? parameterOptions.map((param) => enrichDropdown(makeActionOption(param))) : []),
+						...(optionOptions ? optionOptions.flatMap((opt) => makeActionOption(opt)) : []),
+						...(parameterOptions ? parameterOptions.flatMap((param) => makeIncrementalOption(param)) : []),
+						...(parameterOptions
+							? parameterOptions.flatMap((param) => makeActionOption(param).map((opt) => enrichDropdown(opt)))
+							: []),
 					],
 					callback,
 					learn,
