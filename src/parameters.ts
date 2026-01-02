@@ -520,7 +520,6 @@ export function returnParameters(self: DirectoutInstance): Parameters {
 					max: 24,
 					step: 0.1,
 					default: 0,
-					incremental: false,
 				},
 			],
 			options: [
