@@ -26,6 +26,8 @@ export type Option = {
 	max?: number
 	/** optional step for number, 1 if omitted */
 	step?: number
+	/** allow incremental mode, true if omitted */
+	incremental?: boolean
 }
 
 export type ParameterOption = Option & {
@@ -1177,8 +1179,8 @@ export function returnParameters(self: DirectoutInstance): Parameters {
 					type: 'number',
 					min: 5,
 					max: 75,
-					step: 0.1,
-					tooltip: `Values range from 5 to 75, incrementing by 0.1.`,
+					step: 1,
+					tooltip: `Values range from 5 to 75, incrementing by 1.`,
 				},
 			],
 		},
