@@ -1769,10 +1769,10 @@ export const deviceTables: DeviceTable = {
 			{ segment: 14, bit: 7, chId: 'src_gen_8' },
 		],
 		'PRODIGY.MX': [
-			...Array.from({ length: 6 * 4 * 32 }, (_, i, start = 0) => ({
+			...Array.from({ length: 6 * 256 }, (_, i, start = 0) => ({
 				segment: start + Math.floor(i / 32),
 				bit: i % 32,
-				chId: `src_net${Math.floor(i / 128) + 1}_${(i % 128) + 1}`,
+				chId: `src_net${Math.floor(i / 256) + 1}_${(i % 256) + 1}`,
 			})),
 			...Array.from({ length: 4 * 32 }, (_, i, start = 48) => ({
 				segment: start + Math.floor(i / 32),

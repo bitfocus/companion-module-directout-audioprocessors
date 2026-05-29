@@ -13,6 +13,7 @@ This modules interfaces the audio processors of the PRODIGY and MAVEN series wit
 
 Notice: :link: This version requires at least Companion 4.0.0
 
+- bugfix: correct assignment for sources of the network ports beyond the first 128 in sum bus assignment for PRODIGY.MX
 - chore: update dependency @companion-module/base from 1.11.3 to 1.12.1
 - chore: update dependency @companion-module/tools from 2.6.1 to 2.7.2
 - chore: update dependency @types/node from 22.14.1 to 22.19.19
