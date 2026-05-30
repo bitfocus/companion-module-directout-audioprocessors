@@ -280,7 +280,7 @@ export function returnFeedbackDefinitions(self: DirectoutInstance): CompanionFee
 			let sinkPath = '/settings/easy_routing/*'
 			let sinkTranslation: string | undefined = 'output'
 
-			if (self.devicetype === 'MAVEN.A') {
+			if (self.devicetype === 'MAVEN.A' || self.devicetype == 'PRODIGY.MC') {
 				sinkPath = '/settings/routing/*'
 			}
 
