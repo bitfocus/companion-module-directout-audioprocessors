@@ -14,6 +14,7 @@ This modules interfaces the audio processors of the PRODIGY and MAVEN series wit
 - notice: :link: This version requires at least Companion 4.0.0
 
 - bugfix: use correct endpoint for check patch feedback on PRODIGY.MC
+- bugfix: use correct slot IDs for EARS actions and variables on MAVEN.A (Network was Madi and Madi was unavailable)
 - bugfix: correct assignment for sources of the network ports beyond the first 128 in sum bus assignment for PRODIGY.MX
 - chore: update dependency @companion-module/base from 1.11.3 to 1.12.1
 - chore: update dependency @companion-module/tools from 2.6.1 to 2.7.2

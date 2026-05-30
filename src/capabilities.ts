@@ -1400,12 +1400,12 @@ export const tables: Capabilities = {
 			{ type: 'ears', slotid: 'madi', slotlabel: 'Madi', chid: '2', chlabel: '2 Input Port', index: 25 },
 		],
 		'MAVEN.A': [
-			{ type: 'ears', slotid: 'madi', slotlabel: 'Madi', chid: '1', chlabel: '1 Input Port', index: 0 },
-			{ type: 'ears', slotid: 'madi', slotlabel: 'Madi', chid: '2', chlabel: '2 Input Port', index: 1 },
-			{ type: 'ears', slotid: 'net', slotlabel: 'Net', chid: '1a', chlabel: '1 A Input Port', index: 2 },
-			{ type: 'ears', slotid: 'net', slotlabel: 'Net', chid: '1b', chlabel: '1 B Input Port', index: 3 },
-			{ type: 'ears', slotid: 'net', slotlabel: 'Net', chid: '1c', chlabel: '1 B Input Port', index: 4 },
-			{ type: 'ears', slotid: 'net', slotlabel: 'Net', chid: '1d', chlabel: '1 C Input Port', index: 5 },
+			{ type: 'ears', slotid: 'madi', slotlabel: 'Madi', chid: '1', chlabel: '1 Input Port', index: 8 },
+			{ type: 'ears', slotid: 'madi', slotlabel: 'Madi', chid: '2', chlabel: '2 Input Port', index: 9 },
+			{ type: 'ears', slotid: 'net', slotlabel: 'Net', chid: '1a', chlabel: '1 A Input Port', index: 0 },
+			{ type: 'ears', slotid: 'net', slotlabel: 'Net', chid: '1b', chlabel: '1 B Input Port', index: 1 },
+			{ type: 'ears', slotid: 'net', slotlabel: 'Net', chid: '1c', chlabel: '1 B Input Port', index: 2 },
+			{ type: 'ears', slotid: 'net', slotlabel: 'Net', chid: '1d', chlabel: '1 C Input Port', index: 3 },
 		],
 	},
 
