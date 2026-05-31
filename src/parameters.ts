@@ -26,6 +26,8 @@ export type Option = {
 	max?: number
 	/** optional step for number, 1 if omitted */
 	step?: number
+	/** optionally control of incremental entry mode, true if omitted */
+	incremental?: boolean
 }
 
 export type ParameterOption = Option & {

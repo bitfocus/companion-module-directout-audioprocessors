@@ -262,10 +262,13 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const self = this
 
-		const makeActionOption = (param: Option): SomeCompanionActionInputField => {
+		const makeActionOption = (param: Option): SomeCompanionActionInputField[] => {
+			const baseId = param.id ?? param.label ?? `unknown_${param.type}_option`
+			const label = param.label ?? `Unknown`
+			const options: SomeCompanionActionInputField[] = []
 			const option: Record<string, unknown> = {
-				id: param.id ?? param.label ?? `unknown_${param.type}_option`,
-				label: param.label ?? `Unknown`,
+				id: baseId,
+				label: label,
 			}
 			if (param.tooltip) option.tooltip = param.tooltip
 
@@ -286,7 +289,8 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 					option.choices = []
 					option.default = ''
 				}
-			} else if (param.type === 'number') {
+				options.push(option as unknown as SomeCompanionActionInputField)
+			} else if (param.type === 'number' && param.incremental == false) {
 				option.type = 'number'
 				option.min = param.min ?? 0
 				option.max = param.max ?? 1024
@@ -295,7 +299,50 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 				if (Number(option.default) < Number(option.min)) option.default = option.min
 				if (Number(option.default) > Number(option.max)) option.default = option.max
 				if (option.tooltip === undefined)
-					option.tooltip = `Value range between ${option.min} and ${option.max}, increments ${option.step}`
+					option.tooltip = `Set ${option.label} to an absolute value between ${option.min} and ${option.max}, increments ${option.step}`
+				options.push(option as unknown as SomeCompanionActionInputField)
+			} else if (param.type === 'number') {
+				const min = param.min ?? 0
+				const max = param.max ?? 1024
+
+				options.push({
+					id: `${baseId}_incrementalToggle`,
+					label: `Incremental entry of ${label}`,
+					type: 'checkbox',
+					default: false,
+					tooltip: `Check if you want to enter the value for {$label} incremental or leave unchecked for absolute value`,
+				})
+
+				option.type = 'number'
+				option.label = `${label} (abs)`
+				option.isVisibleExpression = `$(options:${baseId}_incrementalToggle) != true`
+				option.min = min
+				option.max = max
+				option.step = param.step ?? 1
+				option.default = param.default ?? 0
+				if (Number(option.default) < Number(option.min)) option.default = option.min
+				if (Number(option.default) > Number(option.max)) option.default = option.max
+				if (param.tooltip === undefined) {
+					option.tooltip = `Set ${label} to an absolute value between ${min} and ${max}, increments ${option.step}`
+				} else {
+					option.tooltip = `Absolute entry: ${param.tooltip}`
+				}
+				options.push({ ...option } as unknown as SomeCompanionActionInputField)
+
+				option.id = `${baseId}_incrementalValue`
+				option.type = 'number'
+				option.label = `${label} (inc)`
+				option.isVisibleExpression = `$(options:${baseId}_incrementalToggle) == true`
+				option.min = undefined
+				option.max = undefined
+				option.step = param.step ?? 1
+				option.default = 0
+				if (param.tooltip === undefined) {
+					option.tooltip = `Increment/decrement current value of ${label}. Value won't exceed a range from ${min} to ${max} and will conform to ${option.step} steps`
+				} else {
+					option.tooltip = `Incremental entry: ${param.tooltip}`
+				}
+				options.push({ ...option } as unknown as SomeCompanionActionInputField)
 			} else if (param.type === 'boolean') {
 				option.type = 'dropdown'
 				option.choices = param.choices ?? [
@@ -303,14 +350,16 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 					{ label: 'Off', id: '%%false%%' },
 				] // toggle will be added by enrich function
 				option.default = param.default ?? '%%true%%'
+				options.push(option as unknown as SomeCompanionActionInputField)
 			} else if (param.type === 'string') {
 				option.type = 'textinput'
 				option.useVariables = { local: true }
 				option.default = param.default ?? ''
 				if (param.regex) option.regex = param.regex
+				options.push(option as unknown as SomeCompanionActionInputField)
 			}
 
-			return option as unknown as SomeCompanionActionInputField
+			return options
 		}
 
 		const makeFeedbackOption = (param: Option) => {
@@ -444,9 +493,19 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 
 							self.sendSetCmd(thisPath, value, param.translation)
 						} else if (param.type == 'number') {
-							let value = Number(options[thisKey])
-							if (param.min && value < param.min) value = param.min
-							if (param.max && value > param.max) value = param.max
+							let value = 0
+							if (param.incremental == false) {
+								value = Number(options[thisKey])
+							} else {
+								if (options[`${thisKey}_incrementalToggle`] == true) {
+									const currentValue = Number(self.getPath(thisPath))
+									value = currentValue + Number(options[`${thisKey}_incrementalValue`])
+								} else {
+									value = Number(options[thisKey])
+								}
+							}
+							if (param.min != undefined && value < param.min) value = param.min
+							if (param.max != undefined && value > param.max) value = param.max
 							if (param.step)
 								value = Number(
 									(Math.round((value + Number.EPSILON) / param.step) * param.step).toFixed(
@@ -472,6 +531,8 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 						if (value === true) value = '%%true%%'
 						else if (value === false) value = '%%false%%'
 						newValues[param.key] = value
+						if (param.type === 'number' && param.incremental != false)
+							newValues[`${param.key}_incrementalToggle`] = false
 						// self.log('debug', `learn called. value: ${value}\noptionValues: ${JSON.stringify(param, null, 2)}`)
 					}
 					return { ...options, ...newValues }
@@ -480,8 +541,10 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 				this.actionDefinitions[key] = {
 					name: `Set ${parameter.name}`,
 					options: [
-						...(optionOptions ? optionOptions.map((opt) => makeActionOption(opt)) : []),
-						...(parameterOptions ? parameterOptions.map((param) => enrichDropdown(makeActionOption(param))) : []),
+						...(optionOptions ? optionOptions.flatMap((opt) => makeActionOption(opt)) : []),
+						...(parameterOptions
+							? parameterOptions.flatMap((param) => makeActionOption(param).map((opt) => enrichDropdown(opt)))
+							: []),
 					],
 					callback,
 					learn,

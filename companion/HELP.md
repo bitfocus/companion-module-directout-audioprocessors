@@ -7,13 +7,13 @@
 - PRODIGY.MC&nbsp;&nbsp;&nbsp;&nbsp;(System v25.08.1 tested)
 - PRODIGY.MP&nbsp;&nbsp;&nbsp;&nbsp;(System v25.08.1 tested)
 - PRODIGY.MX&nbsp;&nbsp;&nbsp;&nbsp;(System v25.08.1 tested)
-- MAVEN.A&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(TBC)
+- MAVEN.A&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(System v25.11.0 tested)
 
 Compatible with Companion version 4.0.0 or later.
 
 ### Module
 
-The module works adaptive, it automatically detects the device and matches actions, feedback and variables. Configurations can be used with different device types. A routing button for "MADI1 IN 1" to "NET 1 OUT 1" does the same on any device type, as long as the hardware and software configuration is compatible.
+The module works adaptive, it automatically detects the device type and matches actions, feedback and variables. The same configuration can be used with different device types. A routing button for "MADI1 IN 1" to "NET 1 OUT 1" does the same on any device type, as long as the hardware and software configuration is compatible.
 
 User Labels are shown in many dropdown selections. The naming scheme usually is:
 
