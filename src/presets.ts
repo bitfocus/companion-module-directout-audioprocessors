@@ -9,6 +9,8 @@ export function returnPresetDefinitions(self: DirectoutInstance): CompanionPrese
 	const defaultcolor_ok = self.config.defaultcolor_ok
 	const defaultcolor_warn = self.config.defaultcolor_warn
 	const defaultcolor_bad = self.config.defaultcolor_bad
+	const circulararrow =
+		'PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcKICAgd2lkdGg9IjUwLjMwNjk2MSIKICAgaGVpZ2h0PSI1Mi45MjAxODUiCiAgIHZpZXdCb3g9IjAgMCA1MC4zMDY5NjEgNTIuOTIwMTg1IgogICB2ZXJzaW9uPSIxLjEiCiAgIGlkPSJzdmcxIgogICBpbmtzY2FwZTp2ZXJzaW9uPSIxLjMuMiAoMDkxZTIwZSwgMjAyMy0xMS0yNSwgY3VzdG9tKSIKICAgc29kaXBvZGk6ZG9jbmFtZT0icm90YXRlLWxyLnN2ZyIKICAgeG1sbnM6aW5rc2NhcGU9Imh0dHA6Ly93d3cuaW5rc2NhcGUub3JnL25hbWVzcGFjZXMvaW5rc2NhcGUiCiAgIHhtbG5zOnNvZGlwb2RpPSJodHRwOi8vc29kaXBvZGkuc291cmNlZm9yZ2UubmV0L0RURC9zb2RpcG9kaS0wLmR0ZCIKICAgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogICB4bWxuczpzdmc9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8c29kaXBvZGk6bmFtZWR2aWV3CiAgICAgaWQ9Im5hbWVkdmlldzEiCiAgICAgcGFnZWNvbG9yPSIjZmZmZmZmIgogICAgIGJvcmRlcmNvbG9yPSIjMDAwMDAwIgogICAgIGJvcmRlcm9wYWNpdHk9IjAuMjUiCiAgICAgaW5rc2NhcGU6c2hvd3BhZ2VzaGFkb3c9IjIiCiAgICAgaW5rc2NhcGU6cGFnZW9wYWNpdHk9IjAuMCIKICAgICBpbmtzY2FwZTpwYWdlY2hlY2tlcmJvYXJkPSJ0cnVlIgogICAgIGlua3NjYXBlOmRlc2tjb2xvcj0iI2QxZDFkMSIKICAgICBpbmtzY2FwZTpkb2N1bWVudC11bml0cz0icHgiCiAgICAgaW5rc2NhcGU6em9vbT0iMTIuNDA5NzI0IgogICAgIGlua3NjYXBlOmN4PSIyNy40Nzg0NTIiCiAgICAgaW5rc2NhcGU6Y3k9IjMxLjE0NDkzMSIKICAgICBpbmtzY2FwZTp3aW5kb3ctd2lkdGg9IjIwNjQiCiAgICAgaW5rc2NhcGU6d2luZG93LWhlaWdodD0iMTIyMyIKICAgICBpbmtzY2FwZTp3aW5kb3cteD0iMzA2IgogICAgIGlua3NjYXBlOndpbmRvdy15PSIyMzYiCiAgICAgaW5rc2NhcGU6d2luZG93LW1heGltaXplZD0iMCIKICAgICBpbmtzY2FwZTpjdXJyZW50LWxheWVyPSJsYXllcjEiPgogICAgPGlua3NjYXBlOnBhZ2UKICAgICAgIHg9IjAiCiAgICAgICB5PSIwIgogICAgICAgd2lkdGg9IjUwLjMwNjk2MSIKICAgICAgIGhlaWdodD0iNTIuOTIwMTg1IgogICAgICAgaWQ9InBhZ2UyIgogICAgICAgbWFyZ2luPSIwIDUwIDQ2LjYwOTY4OCAwIgogICAgICAgYmxlZWQ9IjAiIC8+CiAgPC9zb2RpcG9kaTpuYW1lZHZpZXc+CiAgPGRlZnMKICAgICBpZD0iZGVmczEiIC8+CiAgPGcKICAgICBpbmtzY2FwZTpsYWJlbD0iRWJlbmUgMSIKICAgICBpbmtzY2FwZTpncm91cG1vZGU9ImxheWVyIgogICAgIGlkPSJsYXllcjEiPgogICAgPHBhdGgKICAgICAgIGlkPSJwYXRoMTQiCiAgICAgICBzdHlsZT0iZmlsbDojZmZmZmZmO2ZpbGwtb3BhY2l0eTowLjQwMDAwMDAxO3N0cm9rZTpub25lO3N0cm9rZS13aWR0aDowO3N0cm9rZS1vcGFjaXR5OjAiCiAgICAgICBkPSJtIDI1LjE1NDI4LDMuNjI2MTg4NiBjIC05LjY5MjQwNywtMmUtNyAtMTguMTIyNDU0Nyw2Ljc5OTM0MzQgLTIwLjIxNTcyMTcsMTYuMjc4NjgxNCAtMS44MTE3NTEsOC4yMDQ1MDIgMS41MjIxODUsMTYuNTg3NzM2IDguMTQ0MTY5NywyMS4zNjAzNDcgbCAtMi43Njk5MjEsNS45MTc2MjMgMTQuMzMzNDczLC00LjU2ODgzMyAtNS42NzE2NTUsLTEzLjkzNDc4NiAtMi4zNjE1ODgsNS4wNDMwOCBjIC0zLjI0NTk3MSwtMi45OTIwNTggLTQuNzc0MjYsLTcuNTQ2NTMyIC0zLjc3NDY3MSwtMTIuMDczMTY5IDEuMjg4MTcyLC01LjgzMzQ2IDYuMzg1MzMzLC05LjkzMzQzOCAxMi4zMTU5MTQsLTkuOTMzNDM4IDUuOTMwNTksMCAxMS4wMjYxNDgsNC4wOTk5NzggMTIuMzE0MzEyLDkuOTMzNDM4IDAuOTk5NTg5LDQuNTI2NjM3IC0wLjUyODY5Niw5LjA4MTExMSAtMy43NzQ2NjcsMTIuMDczMTY5IGwgLTIuMzYxNTg5LC01LjA0MzA4IC01LjY3MTY1OCwxMy45MzQ3ODYgMTQuMzMzNDc3LDQuNTY4ODMzIC0yLjc2OTkxNywtNS45MTc2MjMgQyA0My44NDYyMiwzNi40OTI2MDUgNDcuMTgwMTU1LDI4LjEwOTM3MiA0NS4zNjg0MDEsMTkuOTA0ODcgNDMuMjc1MTM1LDEwLjQyNTUzMiAzNC44NDY2OTksMy42MjYxODkgMjUuMTU0MjgsMy42MjYxODg2IFoiIC8+CiAgPC9nPgo8L3N2Zz4KPCEtLSBDcmVhdGVkIHdpdGggSW5rc2NhcGUgKGh0dHA6Ly93d3cuaW5rc2NhcGUub3JnLykgLS0+Cgo='
 
 	// const contrastcolor = (color: number | string) => {
 	// 	const hsl = splitHsl(color)
@@ -1199,6 +1201,76 @@ export function returnPresetDefinitions(self: DirectoutInstance): CompanionPrese
 				},
 			],
 			name: 'Flex Channel Mute,  Label and Gain',
+		},
+		{
+			type: 'button',
+			category: 'Flex Channel',
+			options: {
+				rotaryActions: true,
+			},
+			style: {
+				text: '`${$(DO:flex_channel_label)["snkdsp_flex1_1"]}\\n${$(DO:flex_channel_gain)["snkdsp_flex1_1"]} dB`',
+				textExpression: true,
+				size: 'auto',
+				color: contrastcolor(defaultcolor_bg),
+				bgcolor: defaultcolor_bg as any,
+				png64: circulararrow,
+			},
+			feedbacks: [
+				{
+					feedbackId: 'flex_mute',
+					options: {
+						flexchannel: 'snkdsp_flex1_1',
+						mute: true,
+					},
+					style: {
+						color: contrastcolor(defaultcolor_bad),
+						bgcolor: defaultcolor_bad as any,
+					},
+					isInverted: false,
+					headline: 'Change background when Flex Channel is muted',
+				},
+			],
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'flex_mute',
+							options: {
+								flexchannel: 'snkdsp_flex1_1',
+								mute: '%%toggle%%',
+							},
+							headline: 'Toggle Flex Channel mute',
+						},
+					],
+					up: [],
+					rotate_left: [
+						{
+							actionId: 'flex_gain',
+							options: {
+								flexchannel: 'snkdsp_flex1_1',
+								gain: 0,
+								gain_incrementalValue: -0.2,
+								gain_incrementalToggle: true,
+							},
+							headline: 'Decrease gain at left turn',
+						},
+					],
+					rotate_right: [
+						{
+							actionId: 'flex_gain',
+							options: {
+								flexchannel: 'snkdsp_flex1_1',
+								gain: 0,
+								gain_incrementalValue: 0.2,
+								gain_incrementalToggle: true,
+							},
+							headline: 'Increase gain at right turn',
+						},
+					],
+				},
+			],
+			name: 'Flex Channel Gain on rotation, Mute on press, Label and Gain on Display',
 		},
 		{
 			type: 'button',

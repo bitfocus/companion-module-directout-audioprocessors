@@ -250,6 +250,26 @@ export function returnActionDefinitions(self: DirectoutInstance): CompanionActio
 		},
 	}
 
+	const getList = (liststr: string, allIds: string[]) => {
+		if (liststr == '') return allIds
+		const ids = liststr.split(',')
+		if (ids.length < 1) return allIds
+		const idarr = ids.map((id) => id.trim())
+		const idsfound = idarr.flatMap((id) => {
+			if (id.includes('*')) {
+				const globNumber = new RegExp(id.replaceAll('*', '-?\\d+'))
+				const matches = allIds.filter((id: string) => id.match(globNumber))
+				return matches || []
+			} else if (allIds.includes(id)) {
+				return id
+			} else {
+				return []
+			}
+		})
+		return [...new Set(idsfound.flat(3))]
+		// return [...new Set(ids.map((id) => id.trim()).filter((id) => allIds.includes(id)))]
+	}
+
 	actions['routing_selectsource'] = {
 		name: 'Routing: Select Source',
 		options: [
@@ -259,7 +279,7 @@ export function returnActionDefinitions(self: DirectoutInstance): CompanionActio
 				type: 'textinput',
 				default: '',
 				useVariables: true,
-				tooltip: `Leave empty to step thru all sources of the device with "Previous" and "Next". \nEnter a comma delimited list of source IDs to restrict previous and next to that list. \nWhen the current value is not part of the list, previous or next will use the first entry.`,
+				tooltip: `Leave empty to step thru all sources of the device with "Previous" and "Next". \nEnter a comma delimited list of source IDs to restrict previous and next to that list. You can use * as a placeholder for any number, e.g. src_madi1_* will cycle thru all inputs of madi 1 slot. \nWhen the current value is not part of the list, previous or next will use the first entry.`,
 			},
 			{
 				id: 'source',
@@ -273,19 +293,14 @@ export function returnActionDefinitions(self: DirectoutInstance): CompanionActio
 			let rawsource = event.options.source
 			let liststr = ''
 
-			const getList = () => {
-				const allIds = sourceSelectionChoices.map((choice) => choice.id)
-				if (liststr === '') return allIds
-				const ids = liststr.split(',')
-				if (ids.length < 1) return allIds
-				return [...new Set(ids.map((id) => id.trim()).filter((id) => allIds.includes(id)))]
-			}
-
 			if (rawsource == '%%next%%' || rawsource == '%%prev%%') {
 				liststr = await context.parseVariablesInString(`${event.options.list}`)
 			}
 			if (rawsource == '%%next%%') {
-				const list = getList()
+				const list = getList(
+					liststr,
+					sourceSelectionChoices.map((choice) => choice.id),
+				)
 				if (list.length === 0) return
 				const currentvalue = self.routingSelectedSource
 
@@ -297,13 +312,16 @@ export function returnActionDefinitions(self: DirectoutInstance): CompanionActio
 					rawsource = list[nextindex]
 				}
 			} else if (rawsource == '%%prev%%') {
-				const list = getList()
+				const list = getList(
+					liststr,
+					sourceSelectionChoices.map((choice) => choice.id),
+				)
 				if (list.length === 0) return
 				const currentvalue = self.routingSelectedSource
 
 				const index = list.findIndex((choice) => choice == currentvalue)
 				if (index == -1) {
-					rawsource = list[list.length]
+					rawsource = list[list.length - 1]
 				} else {
 					const previndex = index == 0 ? list.length - 1 : index - 1
 					rawsource = list[previndex]
@@ -359,7 +377,7 @@ export function returnActionDefinitions(self: DirectoutInstance): CompanionActio
 				type: 'textinput',
 				useVariables: true,
 				default: '',
-				tooltip: `Leave empty to step thru all destinations of the device with "Previous" and "Next". \nEnter a comma delimited list of destination IDs to restrict previous and next to that list. \nWhen the current value is not part of the list, previous or next will use the first entry.`,
+				tooltip: `Leave empty to step thru all destinations of the device with "Previous" and "Next". \nEnter a comma delimited list of destination IDs to restrict previous and next to that list. You can use * as a placeholder for any number, e.g. snk_madi1_* will cycle thru all outputs of madi 1 slot. \nWhen the current value is not part of the list, previous or next will use the first entry.`,
 			},
 			{
 				id: 'sink',
@@ -373,20 +391,15 @@ export function returnActionDefinitions(self: DirectoutInstance): CompanionActio
 			let rawsink = `${event.options.sink}`
 			let liststr = ''
 
-			const getList = () => {
-				const allIds = destinationSelectionChoices.map((choice) => choice.id)
-				if (liststr == '') return allIds
-				const ids = liststr.split(',')
-				if (ids.length < 1) return allIds
-				return [...new Set(ids.map((id) => id.trim()).filter((id) => allIds.includes(id)))]
-			}
-
 			if (rawsink == '%%next%%' || rawsink == '%%prev%%') {
 				liststr = await context.parseVariablesInString(`${event.options.list}`)
 			}
 
 			if (rawsink == '%%next%%') {
-				const list = getList()
+				const list = getList(
+					liststr,
+					destinationSelectionChoices.map((choice) => choice.id),
+				)
 				if (list.length === 0) return
 				const currentvalue = self.routingSelectedSink
 
@@ -398,13 +411,16 @@ export function returnActionDefinitions(self: DirectoutInstance): CompanionActio
 					rawsink = list[nextindex]
 				}
 			} else if (rawsink == '%%prev%%') {
-				const list = getList()
+				const list = getList(
+					liststr,
+					destinationSelectionChoices.map((choice) => choice.id),
+				)
 				if (list.length === 0) return
 				const currentvalue = self.routingSelectedSink
 
 				const index = list.findIndex((choice) => choice == currentvalue)
 				if (index == -1) {
-					rawsink = list[list.length]
+					rawsink = list[list.length - 1]
 				} else {
 					const previndex = index == 0 ? list.length - 1 : index - 1
 					rawsink = list[previndex]

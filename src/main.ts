@@ -517,7 +517,7 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 							}
 							if (param.min != undefined && value < param.min) value = param.min
 							if (param.max != undefined && value > param.max) value = param.max
-							if (param.step)
+							if (param.step != undefined && param.step > 0)
 								value = Number(
 									(Math.round((value + Number.EPSILON) / param.step) * param.step).toFixed(
 										param.step.toString().includes('.') ? param.step.toString().split('.')[1].length : 0,
