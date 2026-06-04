@@ -25,9 +25,19 @@ By default, DirectOut devices add the abbreviated slot name to each channel. Thi
 
 All parameter control actions features a learn button. This button allows to learn the currently used value from the device. This is especially useful when an action should redo the current behaviour of the device. You do not have to look up the current value yourself and enter it, the learn button will do it for you.
 
+### Routing
+
+The module helps you a lot with different audio routing tasks. First of all, there is no differentiation between the I/O routing and the DSP routing like in Globcon. All sources and all destinations are presented in one place.
+
+There are different approaches of how to execute routing. Use the `Routing: Patch Route` action to assign one source to one destination immediately. Remember that you can search the options of a dropbox just by start typing into the dropbox.  
+If you want to simulate a matrix panel, use the actions to select sources and destinations and then tie the route with `Routing: Take Selected Route`. There are feedbacks to show wether a source or destination is currently selected to help you keep track of the status.  
+You can either build a three-press-workflow where you select the source and destination and press take or you can build a two-press-workflow where you select the destination and then immediately route the source by selecting it. Just build a sequential group for that to select the source and then take it on one button.  
+You can also change the selection quite conveniently with a rotary knob by using the `Select Previous item` and `Select Next item` options. Even better you can specify a list of channels thst will be used by the previous and next options and in that list specification you can enter any channels in your preferred order and you can also use globbing. think of it like a search term e.g. enter madi1 for all inputs of the first madi slot, use net*\_1 for all channels 1, 10-19, 100-199 of all network slots because they all contain the search term. IF you want to end the search use a $-sign, e.g. net*\_1$ finds only the first channel of any network slot. (the engine behind that is regular expression matching with the \* interpreted as -?\d+).  
+The Take Selected Route action also has a channel count option that lets you route multiple consecutive channels in one go. That is convenient for stereo pairs or surround channels. Take will start with the selected source and destination and then route also the following n sources to the following n destinations. There are two exceptions: 1. when the selected source is 'Unassigned', all destinations will be unassigned. 2. when one of the destinations to route is a channel with multiple pickoff points, the automatism will not advance thru all pickoff points of the channels, but use the same pickoff point and advance thru the channels.
+
 ### Custom Action
 
-There is one important exception: The **Set Custom Value** action. This action also features the learn button, but it works different. When you press the learn button here, the parameters for the last change in the device will be entered. It works like a Macro-recorder for one command. Just edit something on the device and press the learn button. The action will be filled with the values needed to recreate the last change.
+There is one slightly different action: The **Set Custom Value** action. This action also features the learn button, but it works different. When you press the learn button here, the parameters for the last change in the device will be entered. It works like a Macro-recorder for one command. Just edit something on the device and press the learn button. The action will be filled with the values needed to recreate the last change.
 
 Caveat: Sometimes it can happen that other automations are also changing parameters. You will not only get your own last change, but also the last change of the other automation. This can lead to unexpected results. Use with care.
 

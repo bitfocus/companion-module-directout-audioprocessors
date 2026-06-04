@@ -256,18 +256,11 @@ export function returnActionDefinitions(self: DirectoutInstance): CompanionActio
 		if (ids.length < 1) return allIds
 		const idarr = ids.map((id) => id.trim())
 		const idsfound = idarr.flatMap((id) => {
-			if (id.includes('*')) {
-				const globNumber = new RegExp(id.replaceAll('*', '-?\\d+'))
-				const matches = allIds.filter((id: string) => id.match(globNumber))
-				return matches || []
-			} else if (allIds.includes(id)) {
-				return id
-			} else {
-				return []
-			}
+			const globNumber = new RegExp(id.replaceAll('*', '-?\\d+'))
+			const matches = allIds.filter((id: string) => id.match(globNumber))
+			return matches || []
 		})
 		return [...new Set(idsfound.flat(3))]
-		// return [...new Set(ids.map((id) => id.trim()).filter((id) => allIds.includes(id)))]
 	}
 
 	actions['routing_selectsource'] = {
