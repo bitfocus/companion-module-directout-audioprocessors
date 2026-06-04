@@ -9,7 +9,7 @@ This modules interfaces the audio processors of the PRODIGY and MAVEN series wit
 
 ## :rocket: Version History
 
-### 1.1.0 (2026)
+### 1.1.0 (2026-06-04)
 
 - notice: :link: This version requires at least Companion 4.0.0
 
