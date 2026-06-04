@@ -12,7 +12,7 @@
 
 import { Capabilities, DeviceTable } from './types.js'
 
-const PICKOFFNUM = 5
+export const PICKOFFNUM = 5
 const PICKOFFLABELS_OI = ['O:4/I:F', 'O:3/I:4', 'O:2/I:3', 'O:1/I:2', 'O:F/I:1']
 const PICKOFFLABELS_O = ['4', '3', '2', '1', 'F']
 

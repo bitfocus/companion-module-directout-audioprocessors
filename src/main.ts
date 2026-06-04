@@ -113,6 +113,11 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 	/** should the change record a custom action */
 	inhibitNextGenericRecord: boolean = false
 
+	/** what Input is selected to be routed on take */
+	routingSelectedSource = 'noselection'
+	/** what Output is slected to be routed on take */
+	routingSelectedSink = 'noselection'
+
 	/**
 	 * Class constructor
 	 * most instance initialization will be done in init()
@@ -131,7 +136,13 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 
 		// this.updateStatus(InstanceStatus.Connecting)
 		this.initVariablesTable()
-		// this.updateVariableDefinitions() // maybe not useful in that early stage, but can't harm either
+		this.updateVariableDefinitions()
+
+		this.setVariableValues({
+			routing_selected_source: this.routingSelectedSource,
+			routing_selected_destination: this.routingSelectedSink,
+			routing_source_of_selected_destination: '',
+		})
 
 		this.updateDefaultDefaultStyle()
 
@@ -1096,6 +1107,9 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 					this.updateAllDefinitions()
 					this.initSubscriptions()
 					this.checkFeedbacks()
+					this.setVariableValues({
+						routing_source_of_selected_destination: this.getCurrentSourceForDestination(this.routingSelectedSource),
+					})
 				}
 			}
 
@@ -1256,6 +1270,41 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 				}
 			})
 		if (doUpdate) this.updateAllDefinitions()
+	}
+
+	/**
+	 * returns the Id of the source that is currently routed to the given destination Id
+	 * @param destination destination ID
+	 * @returns the ID of the source
+	 */
+	getCurrentSourceForDestination(destination: string): string {
+		if (destination == 'noselection') return ''
+
+		let sinkPath = '/settings/easy_routing/*'
+		let sinkTranslation: string | undefined = 'output'
+
+		if (this.devicetype === 'MAVEN.A') {
+			sinkPath = '/settings/routing/*'
+		}
+
+		if (destination.startsWith('snkdsp_flex')) {
+			sinkPath = '/settings/flex_channel/*/source_routing'
+			sinkTranslation = 'sinkFlex'
+		} else if (destination.startsWith('snkdsp_mtx') && this.devicetype === 'PRODIGY.MP') {
+			sinkPath = '/settings/mixer/*'
+			sinkTranslation = 'sinkMixer'
+		} else if (destination.startsWith('snkdsp_mtx')) {
+			sinkPath = '/settings/mixer64x64/source_routing/*'
+			sinkTranslation = 'sinkMixer'
+		} else if (destination.startsWith('snkdsp_dyn')) {
+			sinkPath = '/settings/compressor/*/side_chain_key'
+			sinkTranslation = 'sinkSidechain'
+		}
+
+		const path = sinkPath.replace('*', this.translate('outgoing', sinkTranslation, destination))
+		const value = this.getState(path, 'input')
+
+		return `${value}`
 	}
 
 	/**

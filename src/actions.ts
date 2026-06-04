@@ -1,7 +1,7 @@
 import { CompanionActionContext, CompanionActionDefinitions, CompanionActionEvent } from '@companion-module/base'
 import { DirectoutInstance } from './main.js'
 import { PrevNextChoices } from './utils.js'
-import { deviceTables } from './capabilities.js'
+import { deviceTables, PICKOFFNUM } from './capabilities.js'
 
 export function returnActionDefinitions(self: DirectoutInstance): CompanionActionDefinitions {
 	const actions: CompanionActionDefinitions = {
@@ -142,12 +142,16 @@ export function returnActionDefinitions(self: DirectoutInstance): CompanionActio
 				]
 			: self.choices.outputChoices
 
+	const destinationSelectionChoices = [{ id: 'noselection', label: 'No selection' }, ...destinationChoices]
+
 	const sourceChoices = [
 		...self.choices.unassigned,
 		...self.choices.inputChoices,
 		...self.choices.inputDspChoices,
 		...self.choices.generatorSources,
 	]
+
+	const sourceSelectionChoices = [{ id: 'noselection', label: 'No selection' }, ...sourceChoices]
 
 	actions['routing_standard'] = {
 		name: 'Routing: Patch Route',
@@ -243,6 +247,281 @@ export function returnActionDefinitions(self: DirectoutInstance): CompanionActio
 			// self.log('debug', `learn called. value: ${value}\noptionValues: ${JSON.stringify(optionsValues, null, 2)}`)
 
 			return { ...event.options, source: value }
+		},
+	}
+
+	actions['routing_selectsource'] = {
+		name: 'Routing: Select Source',
+		options: [
+			{
+				id: 'list',
+				label: 'List of sources',
+				type: 'textinput',
+				default: '',
+				useVariables: true,
+				tooltip: `Leave empty to step thru all sources of the device with "Previous" and "Next". \nEnter a comma delimited list of source IDs to restrict previous and next to that list. \nWhen the current value is not part of the list, previous or next will use the first entry.`,
+			},
+			{
+				id: 'source',
+				type: 'dropdown',
+				label: 'Source',
+				choices: [...PrevNextChoices, ...sourceSelectionChoices],
+				default: self.choices.unassigned[0].id,
+			},
+		],
+		callback: async (event, context) => {
+			let rawsource = event.options.source
+			let liststr = ''
+
+			const getList = () => {
+				const allIds = sourceSelectionChoices.map((choice) => choice.id)
+				if (liststr === '') return allIds
+				const ids = liststr.split(',')
+				if (ids.length < 1) return allIds
+				return [...new Set(ids.map((id) => id.trim()).filter((id) => allIds.includes(id)))]
+			}
+
+			if (rawsource == '%%next%%' || rawsource == '%%prev%%') {
+				liststr = await context.parseVariablesInString(`${event.options.list}`)
+			}
+			if (rawsource == '%%next%%') {
+				const list = getList()
+				if (list.length === 0) return
+				const currentvalue = self.routingSelectedSource
+
+				const index = list.findIndex((choice) => choice == currentvalue)
+				if (index == -1) {
+					rawsource = list[0]
+				} else {
+					const nextindex = (index + 1) % list.length
+					rawsource = list[nextindex]
+				}
+			} else if (rawsource == '%%prev%%') {
+				const list = getList()
+				if (list.length === 0) return
+				const currentvalue = self.routingSelectedSource
+
+				const index = list.findIndex((choice) => choice == currentvalue)
+				if (index == -1) {
+					rawsource = list[list.length]
+				} else {
+					const previndex = index == 0 ? list.length - 1 : index - 1
+					rawsource = list[previndex]
+				}
+			}
+
+			self.routingSelectedSource = `${rawsource}`
+			self.setVariableValues({
+				routing_selected_source: self.routingSelectedSource,
+			})
+			self.checkFeedbacks('routing_selectedSorce')
+		},
+		learn: (event: CompanionActionEvent, _context: CompanionActionContext) => {
+			const rawsink = `${self.routingSelectedSink}`
+			if (rawsink == 'noselection') return { ...event.options, source: 'noselection' }
+
+			let sinkPath = '/settings/easy_routing/*'
+			let sinkTranslation: string | undefined = 'output'
+
+			if (self.devicetype === 'MAVEN.A') {
+				sinkPath = '/settings/routing/*'
+			}
+
+			if (rawsink.startsWith('snkdsp_flex')) {
+				sinkPath = '/settings/flex_channel/*/source_routing'
+				sinkTranslation = 'sinkFlex'
+			} else if (rawsink.startsWith('snkdsp_mtx') && self.devicetype === 'PRODIGY.MP') {
+				sinkPath = '/settings/mixer/*'
+				sinkTranslation = 'sinkMixer'
+			} else if (rawsink.startsWith('snkdsp_mtx')) {
+				sinkPath = '/settings/mixer64x64/source_routing/*'
+				sinkTranslation = 'sinkMixer'
+			} else if (rawsink.startsWith('snkdsp_dyn')) {
+				sinkPath = '/settings/compressor/*/side_chain_key'
+				sinkTranslation = 'sinkSidechain'
+			}
+
+			const path = sinkPath.replace('*', self.translate('outgoing', sinkTranslation, rawsink))
+			const value = self.getState(path, 'input')
+
+			// self.log('debug', `learn called. value: ${value}\noptionValues: ${JSON.stringify(optionsValues, null, 2)}`)
+
+			return { ...event.options, source: value }
+		},
+	}
+
+	actions['routing_selectsink'] = {
+		name: 'Routing: Select Destination',
+		options: [
+			{
+				id: 'list',
+				label: 'List of destinations',
+				type: 'textinput',
+				useVariables: true,
+				default: '',
+				tooltip: `Leave empty to step thru all destinations of the device with "Previous" and "Next". \nEnter a comma delimited list of destination IDs to restrict previous and next to that list. \nWhen the current value is not part of the list, previous or next will use the first entry.`,
+			},
+			{
+				id: 'sink',
+				type: 'dropdown',
+				label: 'Destination',
+				choices: [...PrevNextChoices, ...destinationSelectionChoices],
+				default: destinationChoices[0].id,
+			},
+		],
+		callback: async (event, context) => {
+			let rawsink = `${event.options.sink}`
+			let liststr = ''
+
+			const getList = () => {
+				const allIds = destinationSelectionChoices.map((choice) => choice.id)
+				if (liststr == '') return allIds
+				const ids = liststr.split(',')
+				if (ids.length < 1) return allIds
+				return [...new Set(ids.map((id) => id.trim()).filter((id) => allIds.includes(id)))]
+			}
+
+			if (rawsink == '%%next%%' || rawsink == '%%prev%%') {
+				liststr = await context.parseVariablesInString(`${event.options.list}`)
+			}
+
+			if (rawsink == '%%next%%') {
+				const list = getList()
+				if (list.length === 0) return
+				const currentvalue = self.routingSelectedSink
+
+				const index = list.findIndex((choice) => choice == currentvalue)
+				if (index == -1) {
+					rawsink = list[0]
+				} else {
+					const nextindex = (index + 1) % list.length
+					rawsink = list[nextindex]
+				}
+			} else if (rawsink == '%%prev%%') {
+				const list = getList()
+				if (list.length === 0) return
+				const currentvalue = self.routingSelectedSink
+
+				const index = list.findIndex((choice) => choice == currentvalue)
+				if (index == -1) {
+					rawsink = list[list.length]
+				} else {
+					const previndex = index == 0 ? list.length - 1 : index - 1
+					rawsink = list[previndex]
+				}
+			}
+			self.routingSelectedSink = rawsink
+			self.setVariableValues({
+				routing_selected_destination: self.routingSelectedSink,
+				routing_source_of_selected_destination: self.getCurrentSourceForDestination(self.routingSelectedSink),
+			})
+			self.checkFeedbacks('routing_selectedSink')
+		},
+	}
+
+	actions['routing_take'] = {
+		name: 'Routing: Take Selected Route',
+		options: [
+			{
+				id: 'count',
+				label: 'Count of consecutive Channels',
+				type: 'number',
+				min: 1,
+				max: 65536,
+				default: 1,
+				step: 1,
+				tooltip: `Set to 1 to route only the selected channel, set to 2 to route the selected and the following channel and so on.\n\nWhen the end of a block is reached, the routing will advance to the next block. When the end of all channels is reached there is no rollover.\n\nIf "Unassigned" is the first source, all destinations will be unassigned. If routing a channel with pickoff points, the same pickoff point will be used for the following channels.`,
+			},
+		],
+		callback: (event, _context) => {
+			const rawsource = self.routingSelectedSource
+			const rawsink = self.routingSelectedSink
+			let count = Math.round(Number(event.options.count))
+			if (isNaN(count) || count < 1) count = 1
+			if (rawsource == 'noselection' || rawsink == 'noselection') return
+
+			let deviceBasePath = '/settings/easy_routing/*'
+			if (self.devicetype === 'MAVEN.A' || self.devicetype === 'PRODIGY.MC') {
+				deviceBasePath = '/settings/routing/*'
+			}
+
+			let sinkPath = deviceBasePath
+			let sinkTranslation: string | undefined = 'output'
+			if (rawsink.startsWith('snkdsp_flex')) {
+				sinkPath = '/settings/flex_channel/*/source_routing'
+				sinkTranslation = 'sinkFlex'
+			} else if (rawsink.startsWith('snkdsp_mtx') && self.devicetype === 'PRODIGY.MP') {
+				sinkPath = '/settings/mixer/*'
+				sinkTranslation = 'sinkMixer'
+			} else if (rawsink.startsWith('snkdsp_mtx')) {
+				sinkPath = '/settings/mixer64x64/source_routing/*'
+				sinkTranslation = 'sinkMixer'
+			} else if (rawsink.startsWith('snkdsp_dyn')) {
+				sinkPath = '/settings/compressor/*/side_chain_key'
+				sinkTranslation = 'sinkSidechain'
+			}
+
+			const path = sinkPath.replace('*', self.translate('outgoing', sinkTranslation, rawsink))
+
+			self.sendSetCmd(path, `${rawsource}`, 'input')
+			if (count > 1) {
+				const sourcelist = sourceSelectionChoices.map((choice) => choice.id)
+				const sinklist = destinationSelectionChoices.map((choice) => choice.id)
+				let nextSource = rawsource
+				let nextSink = `${rawsink}`
+				for (let i = 1; i < count; i += 1) {
+					const sourceindex = sourcelist.findIndex((choice) => choice == nextSource)
+					if (nextSource == 'src_gen_-1') {
+						// stay on unassigned for all sources
+					} else if (sourceindex == -1) {
+						return
+					} else if (nextSource.split('_')[2].includes('p')) {
+						// we are in a source that supports multiple pickoff points
+						if (sourcelist[sourceindex + PICKOFFNUM].split('_')[2].includes('p')) {
+							// skip all pickoff points to the next source with pickoff points
+							nextSource = sourcelist[sourceindex + PICKOFFNUM]
+						} else {
+							// we had been at the end of sources with pickoff points, now find the next source without pickoff points
+							for (let i = 1; i <= PICKOFFNUM; i += 1) {
+								nextSource = sourcelist[sourceindex + i]
+								if (!nextSource.split('_')[2].includes('p')) break
+							}
+						}
+					} else {
+						let nextsourceindex = sourceindex + 1
+						if (nextsourceindex > sourcelist.length) nextsourceindex = sourcelist.length - 1
+						nextSource = sourcelist[nextsourceindex]
+					}
+					const sinkindex = sinklist.findIndex((choice) => choice == nextSink)
+					if (sinkindex == -1) {
+						return
+					} else if (sinkindex >= sinklist.length) {
+						nextSink = sinklist[sinklist.length - 1]
+					} else {
+						nextSink = sinklist[sinkindex + 1]
+					}
+
+					let sinkPath = deviceBasePath
+					let sinkTranslation: string | undefined = 'output'
+					if (nextSink.startsWith('snkdsp_flex')) {
+						sinkPath = '/settings/flex_channel/*/source_routing'
+						sinkTranslation = 'sinkFlex'
+					} else if (nextSink.startsWith('snkdsp_mtx') && self.devicetype === 'PRODIGY.MP') {
+						sinkPath = '/settings/mixer/*'
+						sinkTranslation = 'sinkMixer'
+					} else if (nextSink.startsWith('snkdsp_mtx')) {
+						sinkPath = '/settings/mixer64x64/source_routing/*'
+						sinkTranslation = 'sinkMixer'
+					} else if (nextSink.startsWith('snkdsp_dyn')) {
+						sinkPath = '/settings/compressor/*/side_chain_key'
+						sinkTranslation = 'sinkSidechain'
+					}
+
+					const path = sinkPath.replace('*', self.translate('outgoing', sinkTranslation, nextSink))
+
+					self.sendSetCmd(path, `${nextSource}`, 'input')
+				}
+			}
 		},
 	}
 

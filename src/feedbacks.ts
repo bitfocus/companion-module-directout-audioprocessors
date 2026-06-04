@@ -247,12 +247,16 @@ export function returnFeedbackDefinitions(self: DirectoutInstance): CompanionFee
 				]
 			: self.choices.outputChoices
 
+	const destinationSelectionChoices = [{ id: 'noselection', label: 'No selection' }, ...destinationChoices]
+
 	const sourceChoices = [
 		...self.choices.unassigned,
 		...self.choices.inputChoices,
 		...self.choices.inputDspChoices,
 		...self.choices.generatorSources,
 	]
+
+	const sourceSelectionChoices = [{ id: 'noselection', label: 'No selection' }, ...sourceChoices]
 
 	feedbacks['routing_standard'] = {
 		name: 'Routing: Check patch',
@@ -337,6 +341,54 @@ export function returnFeedbackDefinitions(self: DirectoutInstance): CompanionFee
 			// self.log('debug', `learn called. path: ${path}, translation: ${sinkTranslation}, value: ${value}`)
 
 			return { ...event.options, source: value }
+		},
+	}
+
+	feedbacks['routing_selectedSorce'] = {
+		name: 'Routing: Check selected source',
+		type: 'boolean',
+		options: [
+			{
+				id: 'source',
+				type: 'dropdown',
+				label: 'Source',
+				choices: sourceSelectionChoices,
+				default: self.choices.unassigned[0].id,
+			},
+		],
+		defaultStyle: self.defaultDefaultStyle,
+		callback: (event, _context) => {
+			if (self.routingSelectedSource == event.options.source) {
+				return true
+			}
+			return false
+		},
+		learn: (_event, _context) => {
+			return { source: self.routingSelectedSource }
+		},
+	}
+
+	feedbacks['routing_selectedSink'] = {
+		name: 'Routing: Check selected destination',
+		type: 'boolean',
+		options: [
+			{
+				id: 'sink',
+				type: 'dropdown',
+				label: 'Destination',
+				choices: destinationSelectionChoices,
+				default: destinationChoices[0].id,
+			},
+		],
+		defaultStyle: self.defaultDefaultStyle,
+		callback: (event, _context) => {
+			if (self.routingSelectedSink == event.options.sink) {
+				return true
+			}
+			return false
+		},
+		learn: (_event, _context) => {
+			return { sink: self.routingSelectedSink }
 		},
 	}
 

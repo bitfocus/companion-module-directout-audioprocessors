@@ -20,5 +20,29 @@ export function getStaticVariableDefinitions(_self: DirectoutInstance): Variable
 				publishers: new Set(['static']),
 			},
 		],
+		[
+			'routing_selected_source',
+			{
+				variableId: 'reouting_selected_source',
+				name: 'The ID of the source that is currently selected for routing',
+				publishers: new Set(['static']),
+			},
+		],
+		[
+			'routing_selected_destination',
+			{
+				variableId: 'routing_selected_destination',
+				name: 'The ID of the destination that is currently selected for routing',
+				publishers: new Set(['static']),
+			},
+		],
+		[
+			'routing_source_of_selected_destination',
+			{
+				variableId: 'routing_source_of_selected_destination',
+				name: 'The ID of the source that is currently routed to the selected destination',
+				publishers: new Set(['static']),
+			},
+		],
 	])
 }

@@ -13,7 +13,8 @@ This modules interfaces the audio processors of the PRODIGY and MAVEN series wit
 
 - notice: :link: This version requires at least Companion 4.0.0
 
-- feature: offer an incremental entry mode for all numeric options additionally to the absolut entry. This is very convenient for use on rotary encoders.
+- feature: add an incremental entry mode for all numeric options additionally to the absolut entry. This is very convenient for use on rotary encoders.
+- feature: add a routing option by selecting and take operation including various variables
 - bugfix: use correct endpoint for check patch feedback on PRODIGY.MC
 - bugfix: use correct slot IDs for EARS actions and variables on MAVEN.A (Network was Madi and Madi was unavailable)
 - bugfix: correct assignment for sources of the network ports beyond the first 128 in sum bus assignment for PRODIGY.MX

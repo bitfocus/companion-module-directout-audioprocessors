@@ -33,25 +33,32 @@ export function returnStaticSubscriptions(self: DirectoutInstance): Map<string, 
 				init: ['/settings/routing/1/1'],
 				feedback: ['routing_standard'],
 				fun: (path) => {
+					const pathParts = path.substring(1).split('/')
+					let sinkTranslation = 'output'
+					let optPos = 2
+					if (pathParts[1] === 'flex_channel') sinkTranslation = 'sinkFlex'
+					else if (pathParts[1] === 'mixer64x64') {
+						sinkTranslation = 'sinkMixer'
+						optPos = 3
+					} else if (pathParts[1] === 'mixer') sinkTranslation = 'sinkMixer'
+					else if (pathParts[1] === 'compressor') sinkTranslation = 'sinkSidechain'
+
+					const optionValue = self.translate('incoming', sinkTranslation, stringToNum(pathParts[optPos]))
+					const value = self.getState(path, 'input')
+					// self.log(
+					// 	'debug',
+					// 	`Rec Routing standard at ${path} set to source ${value} sink ${optionValue} translation ${sinkTranslation}`,
+					// )
+
+					// update routing_source_of_selected_destination variable
+					if (self.routingSelectedSink == optionValue) {
+						self.setVariableValues({
+							routing_source_of_selected_destination: value,
+						})
+					}
+
 					// record action if needed
 					if (self.isRecording) {
-						const pathParts = path.substring(1).split('/')
-						let sinkTranslation = 'output'
-						let optPos = 2
-						if (pathParts[1] === 'flex_channel') sinkTranslation = 'sinkFlex'
-						else if (pathParts[1] === 'mixer64x64') {
-							sinkTranslation = 'sinkMixer'
-							optPos = 3
-						} else if (pathParts[1] === 'mixer') sinkTranslation = 'sinkMixer'
-						else if (pathParts[1] === 'compressor') sinkTranslation = 'sinkSidechain'
-
-						const optionValue = self.translate('incoming', sinkTranslation, stringToNum(pathParts[optPos]))
-						const value = self.getState(path, 'input')
-						// self.log(
-						// 	'debug',
-						// 	`Rec Routing standard at ${path} set to source ${value} sink ${optionValue} translation ${sinkTranslation}`,
-						// )
-
 						const action: CompanionRecordedAction = {
 							actionId: 'routing_standard',
 							options: {
