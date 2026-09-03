@@ -1,13 +1,13 @@
-import { Regex, type SomeCompanionConfigField } from '@companion-module/base'
+import { combineRgb, Regex, type SomeCompanionConfigField } from '@companion-module/base'
 
 export interface ModuleConfig {
 	host: string
-	defaultcolor_bg: string
-	defaultcolor_inactive: string
-	defaultcolor_active: string
-	defaultcolor_ok: string
-	defaultcolor_warn: string
-	defaultcolor_bad: string
+	defaultcolor_bg: string | number
+	defaultcolor_inactive: string | number
+	defaultcolor_active: string | number
+	defaultcolor_ok: string | number
+	defaultcolor_warn: string | number
+	defaultcolor_bad: string | number
 }
 
 export function GetConfigFields(): SomeCompanionConfigField[] {
@@ -31,42 +31,42 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			type: 'colorpicker',
 			id: 'defaultcolor_bg',
 			label: 'background',
-			default: '#000000',
+			default: combineRgb(0, 0, 0),
 			width: 4,
 		},
 		{
 			type: 'colorpicker',
 			id: 'defaultcolor_inactive',
 			label: 'inactive',
-			default: '#828282',
+			default: combineRgb(130, 130, 130),
 			width: 4,
 		},
 		{
 			type: 'colorpicker',
 			id: 'defaultcolor_active',
 			label: 'active',
-			default: '#3a00db',
+			default: combineRgb(58, 0, 219),
 			width: 4,
 		},
 		{
 			type: 'colorpicker',
 			id: 'defaultcolor_ok',
 			label: 'ok',
-			default: '#00ea27',
+			default: combineRgb(0, 234, 39),
 			width: 4,
 		},
 		{
 			type: 'colorpicker',
 			id: 'defaultcolor_warn',
 			label: 'warn',
-			default: '#ff8000',
+			default: combineRgb(255, 128, 0),
 			width: 4,
 		},
 		{
 			type: 'colorpicker',
 			id: 'defaultcolor_bad',
 			label: 'bad',
-			default: '#cc0000',
+			default: combineRgb(204, 0, 0),
 			width: 4,
 		},
 	]
