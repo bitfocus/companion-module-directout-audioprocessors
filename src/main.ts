@@ -17,6 +17,7 @@ import {
 	InputValue,
 	CompanionRecordedAction,
 	CompanionButtonStyleProps,
+	CompanionVariableValues,
 } from '@companion-module/base'
 import { GetConfigFields, type ModuleConfig } from './config.js'
 import { getStaticVariableDefinitions } from './variables.js'
@@ -35,6 +36,8 @@ import {
 	enrichDropdown,
 	getPathFromKey,
 	insertPathOptions,
+	ROUTING_PATH,
+	routingVariableId,
 } from './utils.js'
 import {
 	DOstate,
@@ -247,6 +250,15 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 		this.choices.monitoringSnkChoices = this.getChoicesFromTable('monitoringSnkTable')
 		this.choices.monitoringSrcChoices = this.getChoicesFromTable('monitoringSrcTable')
 		this.choices.groupMuteChoices = this.getChoicesFromTable('groupMuteTable')
+		this.choices.destinationChoices =
+			this.devicetype === 'PRODIGY.MP' || this.devicetype === 'PRODIGY.MX' || this.devicetype === 'MAVEN.A'
+				? [
+						...this.choices.outputChoices,
+						...this.choices.outputFlexChoices,
+						...this.choices.outputMixerChoices,
+						...this.choices.outputSidechainChoices,
+					]
+				: this.choices.outputChoices
 		this.choices.sumbusSinkChoices = this.getChoicesFromTable('sourceTableSumbus')
 		this.choices.sumbusSourceChoices = (deviceTables.sumBusSources[this.devicetype] as Array<unknown>).map(
 			(source: any) => {
@@ -1105,10 +1117,11 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 					this.updateAllTranslations()
 					this.updateAllChoices()
 					this.updateAllDefinitions()
+					this.initRoutingVariables()
 					this.initSubscriptions()
 					this.checkFeedbacks()
 					this.setVariableValues({
-						routing_source_of_selected_destination: this.getCurrentSourceForDestination(this.routingSelectedSource),
+						routing_source_of_selected_destination: this.getCurrentSourceForDestination(this.routingSelectedSink),
 					})
 				}
 			}
@@ -1280,10 +1293,20 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 	getCurrentSourceForDestination(destination: string): string {
 		if (destination == 'noselection') return ''
 
-		let sinkPath = '/settings/easy_routing/*'
-		let sinkTranslation: string | undefined = 'output'
+		const value = this.getState(this.getSinkPath(destination), 'input')
 
-		if (this.devicetype === 'MAVEN.A') {
+		return `${value}`
+	}
+
+	/**
+	 * returns the device path that holds the routed source for the given destination ID
+	 * @param destination destination ID, e.g. `snk_madi1_1`
+	 */
+	getSinkPath(destination: string): string {
+		let sinkPath = '/settings/easy_routing/*'
+		let sinkTranslation = 'output'
+
+		if (this.devicetype === 'MAVEN.A' || this.devicetype === 'PRODIGY.MC') {
 			sinkPath = '/settings/routing/*'
 		}
 
@@ -1291,6 +1314,7 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 			sinkPath = '/settings/flex_channel/*/source_routing'
 			sinkTranslation = 'sinkFlex'
 		} else if (destination.startsWith('snkdsp_mtx') && this.devicetype === 'PRODIGY.MP') {
+			// the MP mixer translation holds `<mixer>/source_routing/<input>`
 			sinkPath = '/settings/mixer/*'
 			sinkTranslation = 'sinkMixer'
 		} else if (destination.startsWith('snkdsp_mtx')) {
@@ -1301,10 +1325,50 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 			sinkTranslation = 'sinkSidechain'
 		}
 
-		const path = sinkPath.replace('*', this.translate('outgoing', sinkTranslation, destination))
-		const value = this.getState(path, 'input')
+		return sinkPath.replace('*', this.translate('outgoing', sinkTranslation, destination))
+	}
 
-		return `${value}`
+	/**
+	 * the inverse of getSinkPath
+	 * @param path device path of a routing entry
+	 * @returns the destination ID, or undefined if the path is not a routing entry
+	 */
+	getSinkFromPath(path: string): string | undefined {
+		const match = path.match(ROUTING_PATH)
+		if (match === null) return undefined
+		const [, output, flex, mixer, mixer64, sidechain] = match
+
+		let sink: unknown
+		if (output !== undefined) sink = this.translate('incoming', 'output', Number(output))
+		else if (flex !== undefined) sink = this.translate('incoming', 'sinkFlex', Number(flex))
+		else if (mixer !== undefined) sink = this.translate('incoming', 'sinkMixer', mixer)
+		else if (mixer64 !== undefined) sink = this.translate('incoming', 'sinkMixer', Number(mixer64))
+		else if (sidechain !== undefined) sink = this.translate('incoming', 'sinkSidechain', Number(sidechain))
+
+		return typeof sink === 'string' ? sink : undefined
+	}
+
+	/**
+	 * (re)defines one active source variable per routing destination of the connected device and sets its value
+	 */
+	initRoutingVariables(): void {
+		for (const [key, def] of this.variablesTable) {
+			if (def.publishers.has('routing')) this.variablesTable.delete(key)
+		}
+
+		const values: CompanionVariableValues = {}
+		for (const destination of this.choices.destinationChoices as { id: string; label: string }[]) {
+			const variableId = routingVariableId(destination.id)
+			this.variablesTable.set(variableId, {
+				variableId,
+				name: `${destination.label} Active Source`,
+				publishers: new Set(['routing']),
+			})
+			values[variableId] = this.getState(this.getSinkPath(destination.id), 'input')
+		}
+
+		this.updateVariableDefinitions()
+		this.setVariableValues(values)
 	}
 
 	/**

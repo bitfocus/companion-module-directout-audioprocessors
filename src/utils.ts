@@ -22,6 +22,15 @@ export const stringToNum = (input: string | number): number | string => {
 	return input
 }
 
+/**
+ * Matches every device path that holds the routed source of a destination.
+ * Capture groups: output, flex channel, MP mixer (`<mixer>/source_routing/<input>`), 64x64 mixer, sidechain
+ */
+export const ROUTING_PATH =
+	/^\/settings\/(?:(?:easy_)?routing\/(\d+)|flex_channel\/(\d+)\/source_routing|mixer\/(\d+\/source_routing\/\d+)|mixer64x64\/source_routing\/(\d+)|compressor\/(\d+)\/side_chain_key)$/
+
+export const routingVariableId = (destination: string): string => `dest_${destination}_active_source`
+
 export const getPathFromKey = (key: string): string => {
 	return key.indexOf('/') > -1 ? key.substring(key.indexOf('/')) : ''
 }

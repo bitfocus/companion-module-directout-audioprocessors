@@ -132,15 +132,7 @@ export function returnActionDefinitions(self: DirectoutInstance): CompanionActio
 		},
 	}
 
-	const destinationChoices =
-		self.devicetype === 'PRODIGY.MP' || self.devicetype === 'PRODIGY.MX' || self.devicetype === 'MAVEN.A'
-			? [
-					...self.choices.outputChoices,
-					...self.choices.outputFlexChoices,
-					...self.choices.outputMixerChoices,
-					...self.choices.outputSidechainChoices,
-				]
-			: self.choices.outputChoices
+	const destinationChoices = self.choices.destinationChoices
 
 	const destinationSelectionChoices = [{ id: 'noselection', label: 'No selection' }, ...destinationChoices]
 
@@ -174,28 +166,7 @@ export function returnActionDefinitions(self: DirectoutInstance): CompanionActio
 		callback: (event, _context) => {
 			let rawsource = event.options.source
 			const rawsink = `${event.options.sink}`
-			let sinkPath = '/settings/easy_routing/*'
-			let sinkTranslation: string | undefined = 'output'
-
-			if (self.devicetype === 'MAVEN.A' || self.devicetype === 'PRODIGY.MC') {
-				sinkPath = '/settings/routing/*'
-			}
-
-			if (rawsink.startsWith('snkdsp_flex')) {
-				sinkPath = '/settings/flex_channel/*/source_routing'
-				sinkTranslation = 'sinkFlex'
-			} else if (rawsink.startsWith('snkdsp_mtx') && self.devicetype === 'PRODIGY.MP') {
-				sinkPath = '/settings/mixer/*'
-				sinkTranslation = 'sinkMixer'
-			} else if (rawsink.startsWith('snkdsp_mtx')) {
-				sinkPath = '/settings/mixer64x64/source_routing/*'
-				sinkTranslation = 'sinkMixer'
-			} else if (rawsink.startsWith('snkdsp_dyn')) {
-				sinkPath = '/settings/compressor/*/side_chain_key'
-				sinkTranslation = 'sinkSidechain'
-			}
-
-			const path = sinkPath.replace('*', self.translate('outgoing', sinkTranslation, rawsink))
+			const path = self.getSinkPath(rawsink)
 
 			if (rawsource == '%%next%%') {
 				const list: any[] = sourceChoices
@@ -220,28 +191,7 @@ export function returnActionDefinitions(self: DirectoutInstance): CompanionActio
 		learn: (event: CompanionActionEvent, _context: CompanionActionContext) => {
 			const rawsink = `${event.options.sink}`
 
-			let sinkPath = '/settings/easy_routing/*'
-			let sinkTranslation: string | undefined = 'output'
-
-			if (self.devicetype === 'MAVEN.A') {
-				sinkPath = '/settings/routing/*'
-			}
-
-			if (rawsink.startsWith('snkdsp_flex')) {
-				sinkPath = '/settings/flex_channel/*/source_routing'
-				sinkTranslation = 'sinkFlex'
-			} else if (rawsink.startsWith('snkdsp_mtx') && self.devicetype === 'PRODIGY.MP') {
-				sinkPath = '/settings/mixer/*'
-				sinkTranslation = 'sinkMixer'
-			} else if (rawsink.startsWith('snkdsp_mtx')) {
-				sinkPath = '/settings/mixer64x64/source_routing/*'
-				sinkTranslation = 'sinkMixer'
-			} else if (rawsink.startsWith('snkdsp_dyn')) {
-				sinkPath = '/settings/compressor/*/side_chain_key'
-				sinkTranslation = 'sinkSidechain'
-			}
-
-			const path = sinkPath.replace('*', self.translate('outgoing', sinkTranslation, rawsink))
+			const path = self.getSinkPath(rawsink)
 			const value = self.getState(path, 'input')
 
 			// self.log('debug', `learn called. value: ${value}\noptionValues: ${JSON.stringify(optionsValues, null, 2)}`)
@@ -331,28 +281,7 @@ export function returnActionDefinitions(self: DirectoutInstance): CompanionActio
 			const rawsink = `${self.routingSelectedSink}`
 			if (rawsink == 'noselection') return { ...event.options, source: 'noselection' }
 
-			let sinkPath = '/settings/easy_routing/*'
-			let sinkTranslation: string | undefined = 'output'
-
-			if (self.devicetype === 'MAVEN.A') {
-				sinkPath = '/settings/routing/*'
-			}
-
-			if (rawsink.startsWith('snkdsp_flex')) {
-				sinkPath = '/settings/flex_channel/*/source_routing'
-				sinkTranslation = 'sinkFlex'
-			} else if (rawsink.startsWith('snkdsp_mtx') && self.devicetype === 'PRODIGY.MP') {
-				sinkPath = '/settings/mixer/*'
-				sinkTranslation = 'sinkMixer'
-			} else if (rawsink.startsWith('snkdsp_mtx')) {
-				sinkPath = '/settings/mixer64x64/source_routing/*'
-				sinkTranslation = 'sinkMixer'
-			} else if (rawsink.startsWith('snkdsp_dyn')) {
-				sinkPath = '/settings/compressor/*/side_chain_key'
-				sinkTranslation = 'sinkSidechain'
-			}
-
-			const path = sinkPath.replace('*', self.translate('outgoing', sinkTranslation, rawsink))
+			const path = self.getSinkPath(rawsink)
 			const value = self.getState(path, 'input')
 
 			// self.log('debug', `learn called. value: ${value}\noptionValues: ${JSON.stringify(optionsValues, null, 2)}`)
@@ -449,28 +378,7 @@ export function returnActionDefinitions(self: DirectoutInstance): CompanionActio
 			if (isNaN(count) || count < 1) count = 1
 			if (rawsource == 'noselection' || rawsink == 'noselection') return
 
-			let deviceBasePath = '/settings/easy_routing/*'
-			if (self.devicetype === 'MAVEN.A' || self.devicetype === 'PRODIGY.MC') {
-				deviceBasePath = '/settings/routing/*'
-			}
-
-			let sinkPath = deviceBasePath
-			let sinkTranslation: string | undefined = 'output'
-			if (rawsink.startsWith('snkdsp_flex')) {
-				sinkPath = '/settings/flex_channel/*/source_routing'
-				sinkTranslation = 'sinkFlex'
-			} else if (rawsink.startsWith('snkdsp_mtx') && self.devicetype === 'PRODIGY.MP') {
-				sinkPath = '/settings/mixer/*'
-				sinkTranslation = 'sinkMixer'
-			} else if (rawsink.startsWith('snkdsp_mtx')) {
-				sinkPath = '/settings/mixer64x64/source_routing/*'
-				sinkTranslation = 'sinkMixer'
-			} else if (rawsink.startsWith('snkdsp_dyn')) {
-				sinkPath = '/settings/compressor/*/side_chain_key'
-				sinkTranslation = 'sinkSidechain'
-			}
-
-			const path = sinkPath.replace('*', self.translate('outgoing', sinkTranslation, rawsink))
+			const path = self.getSinkPath(rawsink)
 
 			self.sendSetCmd(path, `${rawsource}`, 'input')
 			if (count > 1) {
@@ -510,23 +418,7 @@ export function returnActionDefinitions(self: DirectoutInstance): CompanionActio
 						nextSink = sinklist[sinkindex + 1]
 					}
 
-					let sinkPath = deviceBasePath
-					let sinkTranslation: string | undefined = 'output'
-					if (nextSink.startsWith('snkdsp_flex')) {
-						sinkPath = '/settings/flex_channel/*/source_routing'
-						sinkTranslation = 'sinkFlex'
-					} else if (nextSink.startsWith('snkdsp_mtx') && self.devicetype === 'PRODIGY.MP') {
-						sinkPath = '/settings/mixer/*'
-						sinkTranslation = 'sinkMixer'
-					} else if (nextSink.startsWith('snkdsp_mtx')) {
-						sinkPath = '/settings/mixer64x64/source_routing/*'
-						sinkTranslation = 'sinkMixer'
-					} else if (nextSink.startsWith('snkdsp_dyn')) {
-						sinkPath = '/settings/compressor/*/side_chain_key'
-						sinkTranslation = 'sinkSidechain'
-					}
-
-					const path = sinkPath.replace('*', self.translate('outgoing', sinkTranslation, nextSink))
+					const path = self.getSinkPath(nextSink)
 
 					self.sendSetCmd(path, `${nextSource}`, 'input')
 				}

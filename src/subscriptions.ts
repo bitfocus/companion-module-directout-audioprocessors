@@ -1,7 +1,7 @@
 import { Subscription } from './types.js'
 import { DirectoutInstance } from './main.js'
 import { CompanionRecordedAction } from '@companion-module/base'
-import { stringToNum } from './utils.js'
+import { ROUTING_PATH, routingVariableId } from './utils.js'
 
 export function returnStaticSubscriptions(self: DirectoutInstance): Map<string, Subscription> {
 	/**
@@ -28,30 +28,16 @@ export function returnStaticSubscriptions(self: DirectoutInstance): Map<string, 
 		[
 			'routing_standard',
 			{
-				check:
-					/^\/settings\/((easy_)?routing\/\d+)|(flex_channel\/\d+\/source_routing)|(mixer\/\d+)|(mixer64x64\/source_routing\/\d+)|(compressor\/\d+\/side_chain_key)/,
-				init: ['/settings/routing/1/1'],
+				check: ROUTING_PATH,
 				feedback: ['routing_standard'],
 				fun: (path) => {
-					const pathParts = path.substring(1).split('/')
-					let sinkTranslation = 'output'
-					let optPos = 2
-					if (pathParts[1] === 'flex_channel') sinkTranslation = 'sinkFlex'
-					else if (pathParts[1] === 'mixer64x64') {
-						sinkTranslation = 'sinkMixer'
-						optPos = 3
-					} else if (pathParts[1] === 'mixer') sinkTranslation = 'sinkMixer'
-					else if (pathParts[1] === 'compressor') sinkTranslation = 'sinkSidechain'
-
-					const optionValue = self.translate('incoming', sinkTranslation, stringToNum(pathParts[optPos]))
+					const sink = self.getSinkFromPath(path)
+					if (sink === undefined) return
 					const value = self.getState(path, 'input')
-					// self.log(
-					// 	'debug',
-					// 	`Rec Routing standard at ${path} set to source ${value} sink ${optionValue} translation ${sinkTranslation}`,
-					// )
 
-					// update routing_source_of_selected_destination variable
-					if (self.routingSelectedSink == optionValue) {
+					self.setVariableValues({ [routingVariableId(sink)]: value })
+
+					if (self.routingSelectedSink == sink) {
 						self.setVariableValues({
 							routing_source_of_selected_destination: value,
 						})
@@ -62,7 +48,7 @@ export function returnStaticSubscriptions(self: DirectoutInstance): Map<string, 
 						const action: CompanionRecordedAction = {
 							actionId: 'routing_standard',
 							options: {
-								sink: optionValue,
+								sink,
 								source: value,
 							},
 						}
