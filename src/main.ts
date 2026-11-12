@@ -1260,6 +1260,9 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 		if (doUpdate) {
 			this.updateAllChoices()
 			this.updateAllDefinitions()
+			if (this.syncRoutingVariableNames()) {
+				this.updateVariableDefinitions() // destination labels live in these choices, so a rename has to reach the variable names too
+			}
 		}
 	}
 
@@ -1356,19 +1359,43 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 			if (def.publishers.has('routing')) this.variablesTable.delete(key)
 		}
 
+		this.syncRoutingVariableNames()
+
 		const values: CompanionVariableValues = {}
 		for (const destination of this.choices.destinationChoices as { id: string; label: string }[]) {
-			const variableId = routingVariableId(destination.id)
-			this.variablesTable.set(variableId, {
-				variableId,
-				name: `${destination.label} Active Source`,
-				publishers: new Set(['routing']),
-			})
-			values[variableId] = this.getState(this.getSinkPath(destination.id), 'input')
+			values[routingVariableId(destination.id)] = this.getState(this.getSinkPath(destination.id), 'input')
 		}
 
 		this.updateVariableDefinitions()
 		this.setVariableValues(values)
+	}
+
+	/**
+	 * Writes the current destination labels into the names of the active source variables.
+	 * @returns true when a variable was added or its name changed
+	 */
+	syncRoutingVariableNames(): boolean {
+		const destinations = this.choices.destinationChoices as { id: string; label: string }[] | undefined
+		if (!Array.isArray(destinations)) return false
+
+		let changed = false
+		for (const destination of destinations) {
+			const variableId = routingVariableId(destination.id)
+			const name = `${destination.label} Active Source`
+			const existing = this.variablesTable.get(variableId)
+			if (existing === undefined) {
+				this.variablesTable.set(variableId, {
+					variableId,
+					name,
+					publishers: new Set(['routing']),
+				})
+				changed = true
+			} else if (existing.name !== name) {
+				existing.name = name
+				changed = true
+			}
+		}
+		return changed
 	}
 
 	/**
