@@ -1466,6 +1466,18 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 	}
 
 	/**
+	 * Like getState, but a path this device does not have returns undefined without an error.
+	 * Label paths differ between firmware versions, and the default label is the fallback.
+	 */
+	tryGetState(path: string): any {
+		try {
+			return FJP.getValueByPointer(this.state, path)
+		} catch (_error) {
+			return undefined
+		}
+	}
+
+	/**
 	 * Get some value from an object by path
 	 * @param path - path to get like `/settings/some_setting`
 	 * @param translation - optional, name of translation map for the value
@@ -1616,8 +1628,8 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 		//this.log('debug', 'devintable\n' + JSON.stringify(devInTable, null, 2))
 		return devInTable.map((input: any) => {
 			const label = formatChannelChoiceLabel(
-				input['slotlabelpath'] ? this.getState(input.slotlabelpath) : undefined,
-				input['chlabelpath'] ? this.getState(input.chlabelpath) : undefined,
+				input['slotlabelpath'] ? this.tryGetState(input.slotlabelpath) : undefined,
+				input['chlabelpath'] ? this.tryGetState(input.chlabelpath) : undefined,
 				input.slotlabel,
 				input.chlabel,
 			)
@@ -1644,8 +1656,8 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 		// this.log('debug', 'devintable\n' + JSON.stringify(devInTable, null, 2))
 		return devTable.map((tableItem: any) => {
 			const label = formatChannelChoiceLabel(
-				tableItem['slotlabelpath'] ? this.getState(tableItem.slotlabelpath) : undefined,
-				tableItem['chlabelpath'] ? this.getState(tableItem.chlabelpath) : undefined,
+				tableItem['slotlabelpath'] ? this.tryGetState(tableItem.slotlabelpath) : undefined,
+				tableItem['chlabelpath'] ? this.tryGetState(tableItem.chlabelpath) : undefined,
 				tableItem.slotlabel,
 				tableItem.chlabel,
 			)
