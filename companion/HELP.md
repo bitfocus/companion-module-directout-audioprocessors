@@ -15,11 +15,7 @@ Compatible with Companion version 4.0.0 or later.
 
 The module works adaptive, it automatically detects the device type and matches actions, feedback and variables. The same configuration can be used with different device types. A routing button for "MADI1 IN 1" to "NET 1 OUT 1" does the same on any device type, as long as the hardware and software configuration is compatible.
 
-User Labels are shown in many dropdown selections. The naming scheme usually is:
-
-> **user slot name** - **user channel name** (**default slot name** – **default channel name**)
-
-By default, DirectOut devices add the abbreviated slot name to each channel. This will lead to some redundant information in Companion and is not an error. Just change the channel labels to your liking.
+User labels are shown in dropdowns and variable names. A channel keeps its default name, such as `MADI 1 In 2`, until its slot or channel is renamed on the device. A renamed channel is shown as the new name followed by the default in parentheses, for example `MADI 1 Kick (MADI 1 In 2)`. The abbreviated slot name that the device puts at the front of a factory channel label, such as `MADI1 In 2`, is not repeated.
 
 ### Actions
 

@@ -34,6 +34,7 @@ import {
 	clampStringNum,
 	contrastcolor,
 	enrichDropdown,
+	formatChannelChoiceLabel,
 	getPathFromKey,
 	insertPathOptions,
 	ROUTING_PATH,
@@ -1614,16 +1615,12 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 		const devInTable: any = tables.sourceTable[this.devicetype]
 		//this.log('debug', 'devintable\n' + JSON.stringify(devInTable, null, 2))
 		return devInTable.map((input: any) => {
-			const slotlabel = input['slotlabelpath'] ? this.getState(input.slotlabelpath) : undefined
-			const chlabel = input['chlabelpath'] ? this.getState(input.chlabelpath) : undefined
-			const defaultlabel = `${input.slotlabel} ${input.chlabel}`
-			let label: string
-
-			if (slotlabel && chlabel) label = `${slotlabel} ${chlabel} (${defaultlabel})`
-			else if (chlabel) label = `${input.slotlabel} ${chlabel} (${defaultlabel})`
-			else if (slotlabel) label = `${slotlabel} (${defaultlabel})`
-			else label = defaultlabel
-
+			const label = formatChannelChoiceLabel(
+				input['slotlabelpath'] ? this.getState(input.slotlabelpath) : undefined,
+				input['chlabelpath'] ? this.getState(input.chlabelpath) : undefined,
+				input.slotlabel,
+				input.chlabel,
+			)
 			const id = `${input.type}_${input.slotid}_${input.chid}`
 			return { label, id }
 		})
@@ -1646,15 +1643,12 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 		const devTable: any = (tables as any)[table][devicetouse]
 		// this.log('debug', 'devintable\n' + JSON.stringify(devInTable, null, 2))
 		return devTable.map((tableItem: any) => {
-			const slotlabel = tableItem['slotlabelpath'] ? this.getState(tableItem.slotlabelpath) : undefined
-			const chlabel = tableItem['chlabelpath'] ? this.getState(tableItem.chlabelpath) : undefined
-			const defaultlabel = `${tableItem.slotlabel} ${tableItem.chlabel}`
-			let label: string
-
-			if (slotlabel && chlabel) label = `${slotlabel} ${chlabel} (${defaultlabel})`
-			else if (chlabel) label = `${tableItem.slotlabel} ${chlabel} (${defaultlabel})`
-			else label = defaultlabel
-
+			const label = formatChannelChoiceLabel(
+				tableItem['slotlabelpath'] ? this.getState(tableItem.slotlabelpath) : undefined,
+				tableItem['chlabelpath'] ? this.getState(tableItem.chlabelpath) : undefined,
+				tableItem.slotlabel,
+				tableItem.chlabel,
+			)
 			const id = `${tableItem.type}_${tableItem.slotid}_${tableItem.chid}`
 			return { label, id }
 		})

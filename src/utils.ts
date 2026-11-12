@@ -31,6 +31,44 @@ export const ROUTING_PATH =
 
 export const routingVariableId = (destination: string): string => `dest_${destination}_active_source`
 
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/**
+ * DirectOut stores the slot abbreviation at the front of a factory channel label, so
+ * "MADI 1" plus "MADI1 In 2" would otherwise read "MADI 1 MADI1 In 2 (MADI 1 In 2)".
+ * Drop that repeated prefix, and keep the default name in parentheses only when the
+ * label on the device differs from it.
+ */
+export const formatChannelChoiceLabel = (
+	userSlot: unknown,
+	userChannel: unknown,
+	defaultSlot: string,
+	defaultChannel: string,
+): string => {
+	const asText = (value: unknown): string => (typeof value === 'string' ? value.trim() : '')
+	const slot = asText(userSlot)
+	const channel = asText(userChannel)
+	const defSlot = defaultSlot.trim()
+	const defChannel = defaultChannel.trim()
+	const defaultLabel = [defSlot, defChannel].filter(Boolean).join(' ')
+
+	const stripPrefix = (text: string, prefix: string): string => {
+		for (const form of [prefix.trim(), prefix.replace(/\s+/g, '')]) {
+			if (!form) continue
+			text = text.replace(new RegExp(`^${escapeRegExp(form)}\\s+`, 'i'), '')
+		}
+		return text
+	}
+
+	let channelText = stripPrefix(channel, defSlot)
+	if (slot && slot.toLowerCase() !== defSlot.toLowerCase()) channelText = stripPrefix(channelText, slot)
+
+	const shown = [slot || defSlot, channelText || defChannel].filter(Boolean).join(' ')
+	const normalize = (value: string): string => value.replace(/\s+/g, ' ').trim().toLowerCase()
+	const same = normalize(shown) === normalize(defaultLabel)
+	return !defaultLabel || same ? shown : `${shown} (${defaultLabel})`
+}
+
 export const getPathFromKey = (key: string): string => {
 	return key.indexOf('/') > -1 ? key.substring(key.indexOf('/')) : ''
 }
