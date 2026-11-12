@@ -17,6 +17,7 @@ import {
 	InputValue,
 	CompanionRecordedAction,
 	CompanionButtonStyleProps,
+	CompanionVariableValues,
 } from '@companion-module/base'
 import { GetConfigFields, type ModuleConfig } from './config.js'
 import { getStaticVariableDefinitions } from './variables.js'
@@ -33,8 +34,11 @@ import {
 	clampStringNum,
 	contrastcolor,
 	enrichDropdown,
+	formatChannelChoiceLabel,
 	getPathFromKey,
 	insertPathOptions,
+	ROUTING_PATH,
+	routingVariableId,
 } from './utils.js'
 import {
 	DOstate,
@@ -247,6 +251,15 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 		this.choices.monitoringSnkChoices = this.getChoicesFromTable('monitoringSnkTable')
 		this.choices.monitoringSrcChoices = this.getChoicesFromTable('monitoringSrcTable')
 		this.choices.groupMuteChoices = this.getChoicesFromTable('groupMuteTable')
+		this.choices.destinationChoices =
+			this.devicetype === 'PRODIGY.MP' || this.devicetype === 'PRODIGY.MX' || this.devicetype === 'MAVEN.A'
+				? [
+						...this.choices.outputChoices,
+						...this.choices.outputFlexChoices,
+						...this.choices.outputMixerChoices,
+						...this.choices.outputSidechainChoices,
+					]
+				: this.choices.outputChoices
 		this.choices.sumbusSinkChoices = this.getChoicesFromTable('sourceTableSumbus')
 		this.choices.sumbusSourceChoices = (deviceTables.sumBusSources[this.devicetype] as Array<unknown>).map(
 			(source: any) => {
@@ -1105,10 +1118,11 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 					this.updateAllTranslations()
 					this.updateAllChoices()
 					this.updateAllDefinitions()
+					this.initRoutingVariables()
 					this.initSubscriptions()
 					this.checkFeedbacks()
 					this.setVariableValues({
-						routing_source_of_selected_destination: this.getCurrentSourceForDestination(this.routingSelectedSource),
+						routing_source_of_selected_destination: this.getCurrentSourceForDestination(this.routingSelectedSink),
 					})
 				}
 			}
@@ -1247,6 +1261,9 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 		if (doUpdate) {
 			this.updateAllChoices()
 			this.updateAllDefinitions()
+			if (this.syncRoutingVariableNames()) {
+				this.updateVariableDefinitions() // destination labels live in these choices, so a rename has to reach the variable names too
+			}
 		}
 	}
 
@@ -1280,10 +1297,20 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 	getCurrentSourceForDestination(destination: string): string {
 		if (destination == 'noselection') return ''
 
-		let sinkPath = '/settings/easy_routing/*'
-		let sinkTranslation: string | undefined = 'output'
+		const value = this.getState(this.getSinkPath(destination), 'input')
 
-		if (this.devicetype === 'MAVEN.A') {
+		return `${value}`
+	}
+
+	/**
+	 * returns the device path that holds the routed source for the given destination ID
+	 * @param destination destination ID, e.g. `snk_madi1_1`
+	 */
+	getSinkPath(destination: string): string {
+		let sinkPath = '/settings/easy_routing/*'
+		let sinkTranslation = 'output'
+
+		if (this.devicetype === 'MAVEN.A' || this.devicetype === 'PRODIGY.MC') {
 			sinkPath = '/settings/routing/*'
 		}
 
@@ -1291,6 +1318,7 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 			sinkPath = '/settings/flex_channel/*/source_routing'
 			sinkTranslation = 'sinkFlex'
 		} else if (destination.startsWith('snkdsp_mtx') && this.devicetype === 'PRODIGY.MP') {
+			// the MP mixer translation holds `<mixer>/source_routing/<input>`
 			sinkPath = '/settings/mixer/*'
 			sinkTranslation = 'sinkMixer'
 		} else if (destination.startsWith('snkdsp_mtx')) {
@@ -1301,10 +1329,74 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 			sinkTranslation = 'sinkSidechain'
 		}
 
-		const path = sinkPath.replace('*', this.translate('outgoing', sinkTranslation, destination))
-		const value = this.getState(path, 'input')
+		return sinkPath.replace('*', this.translate('outgoing', sinkTranslation, destination))
+	}
 
-		return `${value}`
+	/**
+	 * the inverse of getSinkPath
+	 * @param path device path of a routing entry
+	 * @returns the destination ID, or undefined if the path is not a routing entry
+	 */
+	getSinkFromPath(path: string): string | undefined {
+		const match = path.match(ROUTING_PATH)
+		if (match === null) return undefined
+		const [, output, flex, mixer, mixer64, sidechain] = match
+
+		let sink: unknown
+		if (output !== undefined) sink = this.translate('incoming', 'output', Number(output))
+		else if (flex !== undefined) sink = this.translate('incoming', 'sinkFlex', Number(flex))
+		else if (mixer !== undefined) sink = this.translate('incoming', 'sinkMixer', mixer)
+		else if (mixer64 !== undefined) sink = this.translate('incoming', 'sinkMixer', Number(mixer64))
+		else if (sidechain !== undefined) sink = this.translate('incoming', 'sinkSidechain', Number(sidechain))
+
+		return typeof sink === 'string' ? sink : undefined
+	}
+
+	/**
+	 * (re)defines one active source variable per routing destination of the connected device and sets its value
+	 */
+	initRoutingVariables(): void {
+		for (const [key, def] of this.variablesTable) {
+			if (def.publishers.has('routing')) this.variablesTable.delete(key)
+		}
+
+		this.syncRoutingVariableNames()
+
+		const values: CompanionVariableValues = {}
+		for (const destination of this.choices.destinationChoices as { id: string; label: string }[]) {
+			values[routingVariableId(destination.id)] = this.getState(this.getSinkPath(destination.id), 'input')
+		}
+
+		this.updateVariableDefinitions()
+		this.setVariableValues(values)
+	}
+
+	/**
+	 * Writes the current destination labels into the names of the active source variables.
+	 * @returns true when a variable was added or its name changed
+	 */
+	syncRoutingVariableNames(): boolean {
+		const destinations = this.choices.destinationChoices as { id: string; label: string }[] | undefined
+		if (!Array.isArray(destinations)) return false
+
+		let changed = false
+		for (const destination of destinations) {
+			const variableId = routingVariableId(destination.id)
+			const name = `${destination.label} Active Source`
+			const existing = this.variablesTable.get(variableId)
+			if (existing === undefined) {
+				this.variablesTable.set(variableId, {
+					variableId,
+					name,
+					publishers: new Set(['routing']),
+				})
+				changed = true
+			} else if (existing.name !== name) {
+				existing.name = name
+				changed = true
+			}
+		}
+		return changed
 	}
 
 	/**
@@ -1371,6 +1463,18 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 	 */
 	getState(path: string, translation?: string): any {
 		return this.getPath(path, this.state, translation)
+	}
+
+	/**
+	 * Like getState, but a path this device does not have returns undefined without an error.
+	 * Label paths differ between firmware versions, and the default label is the fallback.
+	 */
+	tryGetState(path: string): any {
+		try {
+			return FJP.getValueByPointer(this.state, path)
+		} catch (_error) {
+			return undefined
+		}
 	}
 
 	/**
@@ -1523,16 +1627,12 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 		const devInTable: any = tables.sourceTable[this.devicetype]
 		//this.log('debug', 'devintable\n' + JSON.stringify(devInTable, null, 2))
 		return devInTable.map((input: any) => {
-			const slotlabel = input['slotlabelpath'] ? this.getState(input.slotlabelpath) : undefined
-			const chlabel = input['chlabelpath'] ? this.getState(input.chlabelpath) : undefined
-			const defaultlabel = `${input.slotlabel} ${input.chlabel}`
-			let label: string
-
-			if (slotlabel && chlabel) label = `${slotlabel} ${chlabel} (${defaultlabel})`
-			else if (chlabel) label = `${input.slotlabel} ${chlabel} (${defaultlabel})`
-			else if (slotlabel) label = `${slotlabel} (${defaultlabel})`
-			else label = defaultlabel
-
+			const label = formatChannelChoiceLabel(
+				input['slotlabelpath'] ? this.tryGetState(input.slotlabelpath) : undefined,
+				input['chlabelpath'] ? this.tryGetState(input.chlabelpath) : undefined,
+				input.slotlabel,
+				input.chlabel,
+			)
 			const id = `${input.type}_${input.slotid}_${input.chid}`
 			return { label, id }
 		})
@@ -1555,15 +1655,12 @@ export class DirectoutInstance extends InstanceBase<ModuleConfig> {
 		const devTable: any = (tables as any)[table][devicetouse]
 		// this.log('debug', 'devintable\n' + JSON.stringify(devInTable, null, 2))
 		return devTable.map((tableItem: any) => {
-			const slotlabel = tableItem['slotlabelpath'] ? this.getState(tableItem.slotlabelpath) : undefined
-			const chlabel = tableItem['chlabelpath'] ? this.getState(tableItem.chlabelpath) : undefined
-			const defaultlabel = `${tableItem.slotlabel} ${tableItem.chlabel}`
-			let label: string
-
-			if (slotlabel && chlabel) label = `${slotlabel} ${chlabel} (${defaultlabel})`
-			else if (chlabel) label = `${tableItem.slotlabel} ${chlabel} (${defaultlabel})`
-			else label = defaultlabel
-
+			const label = formatChannelChoiceLabel(
+				tableItem['slotlabelpath'] ? this.tryGetState(tableItem.slotlabelpath) : undefined,
+				tableItem['chlabelpath'] ? this.tryGetState(tableItem.chlabelpath) : undefined,
+				tableItem.slotlabel,
+				tableItem.chlabel,
+			)
 			const id = `${tableItem.type}_${tableItem.slotid}_${tableItem.chid}`
 			return { label, id }
 		})
